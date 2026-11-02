@@ -9,15 +9,15 @@
 
 The workspace used for this MVP had Java 8 and no Android SDK or adb; it cannot produce a valid Android APK locally.
 
-## Debug APK
+## Standalone APK
 
 ~~~powershell
 npm install
 npx expo install --fix
 npx expo prebuild --platform android
 cd android
-.\gradlew.bat assembleDebug
-Copy-Item app\build\outputs\apk\debug\app-debug.apk ..\CyberShield.apk
+.\gradlew.bat assembleRelease
+Copy-Item app\build\outputs\apk\release\app-release.apk ..\CyberShield.apk
 Get-FileHash ..\CyberShield.apk -Algorithm SHA256
 ~~~
 
@@ -31,4 +31,4 @@ adb install -r ..\CyberShield.apk
 
 Do not invent signing credentials. Configure a release keystore through a protected CI secret manager or Expo Application Services, then create an AAB/APK using the organization’s approved signing workflow. Generate and publish a SHA-256 file beside every downloadable APK.
 
-The repository includes a GitHub Action that produces a debug APK artifact after a push to main. A pushed tag matching v* publishes a GitHub Release titled CyberShield Android MVP with CyberShield.apk and its SHA-256 checksum. It remains an unsigned debug artifact unless approved signing credentials are configured.
+The repository includes a GitHub Action that produces a standalone APK artifact after a push to main. A pushed tag matching v* publishes a GitHub Release titled CyberShield Android MVP with CyberShield.apk and its SHA-256 checksum. It uses the project’s default signing configuration; configure protected release credentials before Play Store distribution.

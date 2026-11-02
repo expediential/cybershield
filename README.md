@@ -96,12 +96,12 @@ npm install
 npx expo install --fix
 npx expo prebuild --platform android
 cd android
-.\gradlew.bat assembleDebug
-Copy-Item app\build\outputs\apk\debug\app-debug.apk ..\CyberShield.apk
+.\gradlew.bat assembleRelease
+Copy-Item app\build\outputs\apk\release\app-release.apk ..\CyberShield.apk
 Get-FileHash ..\CyberShield.apk -Algorithm SHA256
 ~~~
 
-The supplied GitHub Actions workflow performs equivalent debug-APK packaging on main. See [Android build notes](docs/ANDROID_BUILD.md).
+The supplied GitHub Actions workflow packages a standalone release-variant APK on main. See [Android build notes](docs/ANDROID_BUILD.md).
 
 When a verified version tag is pushed, the same workflow publishes CyberShield.apk and CyberShield.apk.sha256 in a GitHub Release. The stable asset address is:
 
