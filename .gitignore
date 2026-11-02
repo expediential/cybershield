@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.apk
+*.aab
+.env
+.env.local
+backend/.venv/
+__pycache__/
+*.py[cod]
+.DS_Store

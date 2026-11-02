@@ -1,0 +1,13 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      URL_REPUTATION_PROVIDER: disabled
+      URL_REPUTATION_API_KEY: ""
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
