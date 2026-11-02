@@ -103,6 +103,12 @@ Get-FileHash ..\CyberShield.apk -Algorithm SHA256
 
 The supplied GitHub Actions workflow performs equivalent debug-APK packaging on main. See [Android build notes](docs/ANDROID_BUILD.md).
 
+When a verified version tag is pushed, the same workflow publishes CyberShield.apk and CyberShield.apk.sha256 in a GitHub Release. The stable asset address is:
+
+~~~text
+https://github.com/expediential/cybershield/releases/latest/download/CyberShield.apk
+~~~
+
 ## Security and privacy
 
 - Do not put external threat-intelligence keys in the app.

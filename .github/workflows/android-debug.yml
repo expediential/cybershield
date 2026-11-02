@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -26,7 +27,19 @@ jobs:
       - run: npx expo prebuild --platform android --no-install
       - run: cd android && ./gradlew assembleDebug
       - run: cp android/app/build/outputs/apk/debug/app-debug.apk CyberShield.apk
+      - run: sha256sum CyberShield.apk > CyberShield.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: CyberShield.apk
-          path: CyberShield.apk
+          path: |
+            CyberShield.apk
+            CyberShield.apk.sha256
+      - name: Publish tagged Android MVP
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CyberShield Android MVP
+          generate_release_notes: true
+          files: |
+            CyberShield.apk
+            CyberShield.apk.sha256

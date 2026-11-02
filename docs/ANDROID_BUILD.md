@@ -31,4 +31,4 @@ adb install -r ..\CyberShield.apk
 
 Do not invent signing credentials. Configure a release keystore through a protected CI secret manager or Expo Application Services, then create an AAB/APK using the organization’s approved signing workflow. Generate and publish a SHA-256 file beside every downloadable APK.
 
-The repository includes a GitHub Action that produces a debug APK artifact after a push to main. It is not a signed release and does not create a GitHub Release.
+The repository includes a GitHub Action that produces a debug APK artifact after a push to main. A pushed tag matching v* publishes a GitHub Release titled CyberShield Android MVP with CyberShield.apk and its SHA-256 checksum. It remains an unsigned debug artifact unless approved signing credentials are configured.
