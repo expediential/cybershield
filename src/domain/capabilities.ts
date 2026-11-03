@@ -1,22 +1,28 @@
-export type CapabilityState = 'available' | 'permission' | 'configuration' | 'limited';
+export type ModuleId = 'phishing' | 'file' | 'apps' | 'wifi' | 'network' | 'bluetooth';
+export type CapabilityState = 'ready' | 'permission' | 'configuration' | 'demo';
 
 export type Capability = {
-  id: 'link' | 'file' | 'apps' | 'wifi' | 'network' | 'bluetooth';
+  id: ModuleId;
   title: string;
+  shortTitle: string;
   summary: string;
   state: CapabilityState;
   action: string;
 };
 
 export const capabilities: Capability[] = [
-  { id: 'link', title: 'Suspicious links and websites', summary: 'Checks web-address structure on this device.', state: 'available', action: 'Check a link' },
-  { id: 'file', title: 'Files you choose', summary: 'Records metadata without opening or uploading the file.', state: 'available', action: 'Assess a file' },
-  { id: 'apps', title: 'Installed apps', summary: 'Needs a native Android capability and your approval.', state: 'permission', action: 'Learn about access' },
-  { id: 'wifi', title: 'Wi-Fi connection', summary: 'Connection diagnostics are not connected in this build.', state: 'permission', action: 'View availability' },
-  { id: 'network', title: 'Network activity', summary: 'A user-authorized VPN monitor has not been connected.', state: 'configuration', action: 'View monitoring' },
-  { id: 'bluetooth', title: 'Nearby devices', summary: 'Needs Android nearby-device access before it can check.', state: 'permission', action: 'View availability' },
+  { id: 'phishing', title: 'Phishing Protection', shortTitle: 'Phishing', summary: 'Local URL checks identify structural phishing signals before you open a link.', state: 'ready', action: 'Check a suspicious link' },
+  { id: 'file', title: 'File Security', shortTitle: 'Files', summary: 'Inspect the name, type, and size Android shares without opening the file.', state: 'ready', action: 'Inspect a file' },
+  { id: 'apps', title: 'Application Security', shortTitle: 'Apps', summary: 'Permission auditing needs a native PackageManager integration.', state: 'permission', action: 'Open app security' },
+  { id: 'wifi', title: 'Wi-Fi Security', shortTitle: 'Wi-Fi', summary: 'Connection diagnostics need an Android Wi-Fi and permission adapter.', state: 'permission', action: 'Open Wi-Fi security' },
+  { id: 'network', title: 'Network Monitor', shortTitle: 'Network', summary: 'Live connection monitoring requires a consented Android VPN service.', state: 'configuration', action: 'Open network monitor' },
+  { id: 'bluetooth', title: 'Bluetooth Security', shortTitle: 'Bluetooth', summary: 'Nearby-device visibility needs Android Bluetooth access.', state: 'permission', action: 'Open Bluetooth security' },
 ];
 
 export function capabilityLabel(state: CapabilityState) {
-  return state === 'available' ? 'Available' : state === 'permission' ? 'Needs permission' : state === 'configuration' ? 'Not connected' : 'Limited';
+  return state === 'ready' ? 'Ready' : state === 'permission' ? 'Permission required' : state === 'configuration' ? 'Setup required' : 'Demo available';
+}
+
+export function capabilityById(id: ModuleId): Capability {
+  return capabilities.find((item) => item.id === id) ?? capabilities[0];
 }

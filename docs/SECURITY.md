@@ -34,6 +34,14 @@ Before enabling deep scans:
 
 Installed-app access, Wi-Fi metadata, nearby Bluetooth discovery and a VpnService all have version-specific Android restrictions. Request only the minimum permission immediately before the user-selected feature. Never represent a denied, unavailable, or sample-only feature as active.
 
+### Demo Mode
+
+Demo Mode is an in-memory teaching aid for the App Security, Wi-Fi Security, Network Monitor, Bluetooth Security, and Alerts surfaces. Every sample surface carries a `DEMO` label. Demo records are never written to scan history, derived into real alerts, or included in analytics/posture calculations. Turning Demo Mode off immediately removes the sample workspace data.
+
+### Posture and alerts
+
+CyberShield does not calculate a universal device security score. The dashboard can state only: how many declared modules are ready, whether saved local assessments need review, and whether there is insufficient information. Alerts are derived from saved suspicious/malicious URL or file assessments; dismissing and read state are local user controls.
+
 ### Secrets
 
 The mobile application contains no API keys. Configure server-only secrets with deployment secret management; do not commit .env files. .env.example contains empty placeholders only.

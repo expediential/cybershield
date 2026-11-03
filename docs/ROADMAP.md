@@ -1,25 +1,27 @@
 # Roadmap
 
-## Delivered in 0.3.0
+## Delivered in 0.4.0
 
-- [x] Quiet Signal design system with a light-first and persistent dark theme
-- [x] Original scalable Signal Mark and code-native visual components
-- [x] Feature-oriented app structure in place of a monolithic interface
-- [x] Honest protection map and quiet monitoring workspace
-- [x] Local URL assessment, local activity history, and metadata-only file workflow
-- [x] Android hardware-back handling and native screen-settle transitions
+- [x] Sentinel dark-first visual system with a deliberately designed light mode
+- [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols
+- [x] Dedicated user-facing workspaces for phishing, files, applications, Wi-Fi, network monitoring, and Bluetooth
+- [x] Explicit Demo Mode with isolated, non-persisted sample data
+- [x] Real local alert derivation, read/dismiss state, clearable scan history, and activity analytics
+- [x] Reduced Motion preference and Android hardware-back handling
+- [x] Deterministic URL scanner and product-state tests
 - [x] Standalone Android APK CI/release workflow
 
-## Next
+## Next implementation milestones
 
-- [ ] Clear-history control and encrypted-storage decision
-- [ ] Mobile UI tests, device accessibility audit, and offline/error matrix
-- [ ] Opt-in backend client with typed errors, timeouts, and provider disclosure
-- [ ] Isolated queued ClamAV/YARA worker infrastructure
-- [ ] Kotlin Android bridges for user-consented Wi-Fi, Bluetooth, and app metadata
-- [ ] Threat model and native user-controlled `VpnService` monitor
-- [ ] Selected-APK/MobSF workflow with explicit upload consent
+- [ ] Kotlin PackageManager bridge with package visibility policy and permission audit tests
+- [ ] Android Wi-Fi/connectivity bridge with API-level behaviour matrix
+- [ ] Android nearby-device / Bluetooth adapter with just-in-time permission flow
+- [ ] Threat-modelled, consented Kotlin VpnService with persistent stop control
+- [ ] Opt-in remote URL reputation adapter with backend-only API keys and provider disclosure
+- [ ] Isolated queued ClamAV/YARA file worker with upload consent and result signatures
+- [ ] Android notification channel for real local alerts
+- [ ] Physical-device accessibility, layout, and integration test matrix
 
 ## Release gate
 
-A public release requires a physical Android device or emulator pass, accessibility test pass, dependency audit, privacy review, signed artifact, checksum verification, and store-compliance review. An APK produced by CI should not be interpreted as completing those gates.
+An APK from CI is installable but does not complete a public-store release gate. A public release needs physical-device testing, native permission testing on supported Android versions, accessibility review, dependency audit, privacy review, approved signing, checksum verification, and store-compliance review.

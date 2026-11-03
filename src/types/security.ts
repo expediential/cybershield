@@ -26,6 +26,9 @@ export type ScanHistoryItem = {
   score: number;
   createdAt: string;
   detail: string;
+  read?: boolean;
+  dismissed?: boolean;
+  source?: 'local-heuristics' | 'metadata-only';
 };
 
 export type FileAssessment = {

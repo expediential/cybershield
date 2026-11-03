@@ -1,92 +1,38 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BrandHeader, StatusDot, VerdictPill } from '../../components/QuietSignal';
+import { useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackButton, BrandHeader, ModuleGlyph, SecurityTimeline, StatusDot, VerdictPill } from '../../components/QuietSignal';
 import { useTheme } from '../../core/ThemeProvider';
+import { deriveAnalytics, needsAttention } from '../../domain/productState';
 import { radius, space, type } from '../../design/tokens';
 import type { ScanHistoryItem } from '../../types/security';
 
-type Filter = 'all' | 'url' | 'file';
+type Filter = 'all' | 'url' | 'file' | 'attention';
 
-export function ActivityScreen({ history, onProfile, onHistory }: { history: ScanHistoryItem[]; onProfile: () => void; onHistory: () => void }) {
-  const { theme } = useTheme();
+export function ActivityScreen({ history, onProfile, onHistory, onAnalytics }: { history: ScanHistoryItem[]; onProfile: () => void; onHistory: () => void; onAnalytics: () => void }) {
+  const { theme } = useTheme(); const c = theme.colors;
+  const analytics = deriveAnalytics(history);
+  const recentSignals = history.slice(0, 4).map(toSignal);
+  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}><BrandHeader label="Activity & alerts" onProfile={onProfile} /><View style={styles.hero}><Text style={[styles.kicker, { color: c.signal }]}>LOCAL ACTIVITY</Text><Text style={[styles.title, { color: c.ink }]}>{analytics.total ? `${analytics.total} saved assessment${analytics.total === 1 ? '' : 's'}` : 'Your security activity starts with a check.'}</Text><Text style={[styles.copy, { color: c.inkMuted }]}>{analytics.needsReview ? `${analytics.needsReview} saved result${analytics.needsReview === 1 ? '' : 's'} needs your attention.` : 'Only assessments you start appear in this timeline.'}</Text></View><View style={[styles.summary, { backgroundColor: c.surfaceStrong }]}><Summary value={String(analytics.links)} label="LINKS" /><Summary value={String(analytics.files)} label="FILES" /><Summary value={String(analytics.needsReview)} label="REVIEW" /></View><View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Security timeline</Text><Pressable onPress={onHistory}><Text style={[styles.link, { color: c.signal }]}>Full history</Text></Pressable></View><SecurityTimeline events={recentSignals} emptyCopy="No local assessments yet. Results will appear here after you run a link or file check." /><View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Security analytics</Text><Pressable onPress={onAnalytics}><Text style={[styles.link, { color: c.signal }]}>Open analytics</Text></Pressable></View><Pressable onPress={onAnalytics} style={[styles.analyticsTeaser, { borderColor: c.line, backgroundColor: c.surface }]}><View style={styles.analyticsMark}><View style={[styles.teaserBar, { height: 17, backgroundColor: c.signal }]} /><View style={[styles.teaserBar, { height: 31, backgroundColor: c.signal }]} /><View style={[styles.teaserBar, { height: 23, backgroundColor: c.signal }]} /><View style={[styles.teaserBar, { height: 42, backgroundColor: c.signal }]} /></View><View style={styles.analyticsBody}><Text style={[styles.analyticsTitle, { color: c.ink }]}>Your assessment patterns</Text><Text style={[styles.analyticsCopy, { color: c.inkMuted }]}>View real local activity by time, outcome, and module.</Text></View></Pressable><View style={styles.bottomSpace} /></ScrollView>;
+}
+
+export function HistoryScreen({ history, onBack, onClear }: { history: ScanHistoryItem[]; onBack: () => void; onClear: () => void }) {
+  const { theme } = useTheme(); const c = theme.colors;
   const [filter, setFilter] = useState<Filter>('all');
-  const filtered = useMemo(() => history.filter((item) => filter === 'all' || item.kind === filter), [filter, history]);
-  const attention = history.filter((item) => item.verdict === 'suspicious' || item.verdict === 'malicious').length;
-  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: theme.colors.canvas }]}>
-    <BrandHeader label="Activity" onProfile={onProfile} />
-    <View style={styles.intro}><Text style={[styles.eyebrow, { color: theme.colors.forest }]}>YOUR LOCAL RECORD</Text><Text style={[styles.title, { color: theme.colors.ink }]}>{history.length ? attention ? `${attention} result${attention > 1 ? 's' : ''} needs a closer look` : 'Your recent checks are clear' : 'Your activity will appear here'}</Text><Text style={[styles.copy, { color: theme.colors.inkMuted }]}>{history.length ? 'Every item below was created by a link or file assessment on this device.' : 'CyberShield keeps a compact, local record after you choose to assess a link or file.'}</Text></View>
-    <View style={[styles.summary, { backgroundColor: theme.colors.surfaceMuted }]}><SummaryMetric number={String(history.length)} label="checks saved" /><View style={[styles.summaryDivider, { backgroundColor: theme.colors.line }]} /><SummaryMetric number={String(attention)} label="need review" /><View style={[styles.summaryDivider, { backgroundColor: theme.colors.line }]} /><SummaryMetric number={String(history.filter((item) => item.verdict === 'safe').length)} label="no high-risk signal" /></View>
-    <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: theme.colors.ink }]}>Assessment history</Text><Pressable onPress={onHistory}><Text style={[styles.link, { color: theme.colors.forest }]}>Full history</Text></Pressable></View>
-    <View style={styles.filters}><FilterButton active={filter === 'all'} label="All" onPress={() => setFilter('all')} /><FilterButton active={filter === 'url'} label="Links" onPress={() => setFilter('url')} /><FilterButton active={filter === 'file'} label="Files" onPress={() => setFilter('file')} /></View>
-    {filtered.length ? <View style={[styles.timeline, { borderColor: theme.colors.line }]}>{filtered.map((item, index) => <HistoryItem key={item.id} item={item} isLast={index === filtered.length - 1} />)}</View> : <EmptyHistory filter={filter} />}
-    <View style={styles.bottomSpace} />
-  </ScrollView>;
+  const filtered = history.filter((item) => filter === 'all' || (filter === 'attention' ? needsAttention(item.verdict) : item.kind === filter));
+  const confirmClear = () => Alert.alert('Clear local history?', 'This removes saved link and file assessment records from this device.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Clear history', style: 'destructive', onPress: onClear }]);
+  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}><BackButton onPress={onBack} label="Activity" /><View style={styles.historyHero}><Text style={[styles.kicker, { color: c.signal }]}>SCAN HISTORY</Text><Text style={[styles.title, { color: c.ink }]}>Saved assessments</Text><Text style={[styles.copy, { color: c.inkMuted }]}>Link addresses and file names remain in local app storage until you clear them.</Text></View><View style={styles.filters}>{(['all', 'url', 'file', 'attention'] as Filter[]).map((value) => <Pressable key={value} onPress={() => setFilter(value)} style={[styles.filter, { backgroundColor: filter === value ? c.signal : c.surfaceStrong }]}><Text style={[styles.filterText, { color: filter === value ? c.onForest : c.inkMuted }]}>{value === 'all' ? 'All' : value === 'url' ? 'Links' : value === 'file' ? 'Files' : 'Review'}</Text></Pressable>)}</View>{filtered.length ? <View style={styles.historyList}>{filtered.map((item) => <HistoryRow key={item.id} item={item} />)}</View> : <View style={[styles.empty, { backgroundColor: c.surfaceMuted }]}><ModuleGlyph id="file" size={30} tone="active" /><Text style={[styles.emptyTitle, { color: c.ink }]}>No matching assessments</Text><Text style={[styles.emptyCopy, { color: c.inkMuted }]}>Run a local link or file check to add a record.</Text></View>}{history.length ? <Pressable onPress={confirmClear} style={[styles.clear, { borderColor: c.line }]}><Text style={[styles.clearText, { color: c.danger }]}>Clear local scan history</Text></Pressable> : null}</ScrollView>;
 }
 
-export function HistoryScreen({ history, onBack }: { history: ScanHistoryItem[]; onBack: () => void }) {
-  const { theme } = useTheme();
-  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: theme.colors.canvas }]}><Pressable onPress={onBack} style={styles.back}><View style={[styles.backLine, { backgroundColor: theme.colors.ink }]} /><Text style={[styles.backText, { color: theme.colors.ink }]}>Back</Text></Pressable><Text style={[styles.historyTitle, { color: theme.colors.ink }]}>All assessments</Text><Text style={[styles.copy, { color: theme.colors.inkMuted }]}>This record stays in local app storage. It contains file names and link addresses that you chose to assess.</Text>{history.length ? <View style={[styles.timeline, { borderColor: theme.colors.line, marginTop: space.xl }]}>{history.map((item, index) => <HistoryItem key={item.id} item={item} isLast={index === history.length - 1} />)}</View> : <EmptyHistory filter="all" />}</ScrollView>;
-}
-
-function SummaryMetric({ number, label }: { number: string; label: string }) {
-  const { theme } = useTheme();
-  return <View style={styles.summaryMetric}><Text style={[styles.summaryNumber, { color: theme.colors.ink }]}>{number}</Text><Text style={[styles.summaryLabel, { color: theme.colors.inkMuted }]}>{label}</Text></View>;
-}
-
-function FilterButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
-  const { theme } = useTheme();
-  return <Pressable onPress={onPress} style={[styles.filter, { backgroundColor: active ? theme.colors.forest : theme.colors.surfaceMuted }]}><Text style={[styles.filterText, { color: active ? theme.colors.white : theme.colors.inkMuted }]}>{label}</Text></Pressable>;
-}
-
-function HistoryItem({ item, isLast }: { item: ScanHistoryItem; isLast: boolean }) {
-  const { theme } = useTheme();
-  return <View style={styles.historyItem}><View style={styles.timelineStem}><StatusDot state={item.verdict === 'safe' ? 'safe' : item.verdict === 'suspicious' ? 'warning' : item.verdict === 'malicious' ? 'danger' : 'info'} size={9} />{!isLast ? <View style={[styles.timelineLine, { backgroundColor: theme.colors.line }]} /> : null}</View><View style={styles.historyBody}><View style={styles.historyTop}><Text style={[styles.historyType, { color: theme.colors.inkMuted }]}>{item.kind === 'url' ? 'LINK CHECK' : 'FILE METADATA'}</Text><Text style={[styles.historyTime, { color: theme.colors.inkMuted }]}>{formatDate(item.createdAt)}</Text></View><Text numberOfLines={2} style={[styles.historySubject, { color: theme.colors.ink }]}>{item.subject}</Text><Text numberOfLines={2} style={[styles.historyDetail, { color: theme.colors.inkMuted }]}>{item.detail}</Text><View style={styles.historyVerdict}><VerdictPill verdict={item.verdict} /></View></View></View>;
-}
-
-function EmptyHistory({ filter }: { filter: Filter }) {
-  const { theme } = useTheme();
-  return <View style={[styles.empty, { backgroundColor: theme.colors.surfaceMuted }]}><Text style={[styles.emptyTitle, { color: theme.colors.ink }]}>{filter === 'all' ? 'No assessments yet' : `No ${filter === 'url' ? 'link' : 'file'} checks yet`}</Text><Text style={[styles.emptyCopy, { color: theme.colors.inkMuted }]}>When you choose to assess something, the result will be recorded here.</Text></View>;
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Just now' : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
+function Summary({ value, label }: { value: string; label: string }) { const { theme } = useTheme(); return <View style={styles.summaryItem}><Text style={[styles.summaryValue, { color: theme.colors.ink }]}>{value}</Text><Text style={[styles.summaryLabel, { color: theme.colors.inkMuted }]}>{label}</Text></View>; }
+function HistoryRow({ item }: { item: ScanHistoryItem }) { const { theme } = useTheme(); const c = theme.colors; return <View style={[styles.historyRow, { borderTopColor: c.line }]}><View style={[styles.historyGlyph, { backgroundColor: c.surfaceStrong }]}><ModuleGlyph id={item.kind === 'url' ? 'phishing' : 'file'} size={24} tone={item.verdict === 'safe' ? 'active' : 'warning'} /></View><View style={styles.historyBody}><View style={styles.historyTop}><Text style={[styles.historyType, { color: c.inkMuted }]}>{item.kind === 'url' ? 'PHISHING PROTECTION' : 'FILE SECURITY'}</Text><Text style={[styles.historyTime, { color: c.inkMuted }]}>{formatTime(item.createdAt)}</Text></View><Text numberOfLines={1} style={[styles.historySubject, { color: c.ink }]}>{item.subject}</Text><Text numberOfLines={1} style={[styles.historyDetail, { color: c.inkMuted }]}>{item.detail}</Text><View style={styles.historyVerdict}><VerdictPill verdict={item.verdict} /></View></View></View>; }
+function toSignal(item: ScanHistoryItem) { return { id: item.id, title: item.kind === 'url' ? 'Link assessed' : 'File inspected', detail: item.subject, severity: item.verdict === 'malicious' ? 'danger' as const : item.verdict === 'suspicious' ? 'warning' as const : 'safe' as const, time: formatTime(item.createdAt), source: item.kind === 'url' ? 'PHISHING PROTECTION' : 'FILE SECURITY' }; }
+function formatTime(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Just now' : date.toLocaleDateString([], { month: 'short', day: 'numeric' }); }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 58, paddingHorizontal: space.md, paddingBottom: 104, minHeight: '100%' },
-  intro: { marginTop: space.xxl, maxWidth: 350 },
-  eyebrow: { fontFamily: type.body, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  title: { fontFamily: type.display, fontSize: 29, lineHeight: 36, letterSpacing: -0.9, fontWeight: '700', marginTop: 9 },
-  copy: { fontFamily: type.body, fontSize: 13, lineHeight: 20, marginTop: 9 },
-  summary: { minHeight: 87, paddingHorizontal: 8, marginTop: space.xl, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center' },
-  summaryMetric: { flex: 1, alignItems: 'center' },
-  summaryNumber: { fontFamily: type.display, fontSize: 25, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  summaryLabel: { fontFamily: type.body, fontSize: 9, textAlign: 'center', lineHeight: 13, marginTop: 3 },
-  summaryDivider: { width: 1, height: 33 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: space.xl, marginBottom: space.sm },
-  sectionTitle: { fontFamily: type.display, fontSize: 19, fontWeight: '700' },
-  link: { fontFamily: type.body, fontSize: 12, fontWeight: '700' },
-  filters: { flexDirection: 'row', gap: 7, marginBottom: 13 },
-  filter: { minHeight: 34, paddingHorizontal: 13, borderRadius: radius.pill, justifyContent: 'center' },
-  filterText: { fontFamily: type.body, fontSize: 11, fontWeight: '700' },
-  timeline: { borderLeftWidth: 1, paddingLeft: 14 },
-  historyItem: { flexDirection: 'row', gap: 12, minHeight: 126 },
-  timelineStem: { width: 10, alignItems: 'center', paddingTop: 5, marginLeft: -20 },
-  timelineLine: { width: 1, flex: 1, marginTop: 5 },
-  historyBody: { flex: 1, paddingBottom: 20 },
-  historyTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
-  historyType: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.5 },
-  historyTime: { fontFamily: type.body, fontSize: 10 },
-  historySubject: { fontFamily: type.body, fontSize: 14, lineHeight: 19, fontWeight: '700', marginTop: 6 },
-  historyDetail: { fontFamily: type.body, fontSize: 10, lineHeight: 14, marginTop: 4 },
-  historyVerdict: { marginTop: 8 },
-  empty: { padding: 18, borderRadius: radius.md },
-  emptyTitle: { fontFamily: type.body, fontSize: 15, fontWeight: '700' },
-  emptyCopy: { fontFamily: type.body, fontSize: 12, lineHeight: 18, marginTop: 6 },
-  bottomSpace: { height: 20 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 },
-  backLine: { width: 15, height: 1.5 },
-  backText: { fontFamily: type.body, fontSize: 13, fontWeight: '700' },
-  historyTitle: { fontFamily: type.display, fontSize: 30, fontWeight: '700', marginTop: space.xxl },
+  content: { paddingTop: 52, paddingHorizontal: space.md, paddingBottom: 104, minHeight: '100%' }, hero: { marginTop: space.xl, maxWidth: 350 }, historyHero: { marginTop: space.lg, maxWidth: 350 }, kicker: { fontFamily: type.mono, fontSize: 10, letterSpacing: 0.7, fontWeight: '800' }, title: { fontFamily: type.display, fontSize: 29, lineHeight: 36, letterSpacing: -0.9, fontWeight: '700', marginTop: 8 }, copy: { fontFamily: type.body, fontSize: 13, lineHeight: 20, marginTop: 9 },
+  summary: { flexDirection: 'row', minHeight: 82, marginTop: space.xl }, summaryItem: { flex: 1, padding: 13, justifyContent: 'center' }, summaryValue: { fontFamily: type.display, fontSize: 25, fontWeight: '700', fontVariant: ['tabular-nums'] }, summaryLabel: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.5, marginTop: 4 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: space.xl, marginBottom: space.sm }, sectionTitle: { fontFamily: type.display, fontSize: 19, fontWeight: '700' }, link: { fontFamily: type.body, fontSize: 11, fontWeight: '800' },
+  analyticsTeaser: { minHeight: 90, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 }, analyticsMark: { width: 65, height: 48, flexDirection: 'row', alignItems: 'flex-end', gap: 5 }, teaserBar: { width: 10 }, analyticsBody: { flex: 1 }, analyticsTitle: { fontFamily: type.body, fontSize: 14, fontWeight: '800' }, analyticsCopy: { fontFamily: type.body, fontSize: 11, lineHeight: 16, marginTop: 4 },
+  filters: { flexDirection: 'row', gap: 6, marginTop: space.xl, marginBottom: space.sm }, filter: { minHeight: 33, paddingHorizontal: 11, justifyContent: 'center', borderRadius: radius.pill }, filterText: { fontFamily: type.body, fontSize: 10, fontWeight: '800' }, historyList: { marginTop: 5 }, historyRow: { minHeight: 93, borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12, flexDirection: 'row', gap: 10 }, historyGlyph: { width: 45, height: 45, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center' }, historyBody: { flex: 1 }, historyTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 }, historyType: { fontFamily: type.mono, fontSize: 7, letterSpacing: 0.45 }, historyTime: { fontFamily: type.body, fontSize: 9 }, historySubject: { fontFamily: type.body, fontSize: 13, fontWeight: '800', marginTop: 4 }, historyDetail: { fontFamily: type.body, fontSize: 10, marginTop: 3 }, historyVerdict: { marginTop: 7 },
+  empty: { alignItems: 'center', padding: 25, marginTop: space.xl }, emptyTitle: { fontFamily: type.body, fontSize: 14, fontWeight: '800', marginTop: 10 }, emptyCopy: { fontFamily: type.body, fontSize: 11, textAlign: 'center', lineHeight: 16, marginTop: 5 }, clear: { minHeight: 49, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: space.xl }, clearText: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, bottomSpace: { height: 20 },
 });

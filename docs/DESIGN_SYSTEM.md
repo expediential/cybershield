@@ -1,44 +1,64 @@
-# CyberShield Design System — Quiet Signal
+# CyberShield Sentinel Design System
 
-CyberShield 0.3.0 uses Quiet Signal: a calm, human security product language designed to explain real checks without manufacturing danger or certainty.
+The Sentinel system gives CyberShield an instrumented Android identity without turning it into a terminal, game UI, or generic dashboard. Tokens are defined in `src/design/tokens.ts`; the values below document the implementation rather than a future proposal.
 
-## Brand mark
+## Brand
 
-The Signal Mark is a geometric aperture: an outer boundary, a visible opening, and a central point of attention. It is rendered as scalable native geometry in the app and is also available as [signal-mark.svg](../src/brand/assets/signal-mark.svg). It is intentionally not a generic shield or padlock.
+The Signal Mark is a custom aperture: a bounded square field, rotated inspection frame, horizontal beam, and two anchor points. It is rendered as scalable native views in `src/brand/SignalMark.tsx`. The matching vector master is `src/brand/assets/signal-mark.svg`.
 
-## Colour roles
+Module symbols are purpose-built native geometry rather than text abbreviations:
 
-All interface colours live in `src/design/tokens.ts`.
+| Module | Symbol grammar |
+| --- | --- |
+| Phishing Protection | Inspection lens with interrupted core |
+| File Security | Folded file with a scan line |
+| Application Security | Permission grid |
+| Wi-Fi Security | Layered connection arcs |
+| Network Monitor | Connected graph nodes |
+| Bluetooth Security | Constructed Bluetooth transmission mark |
 
-| Role | Light value | Purpose |
+## Exact colour tokens
+
+### Dark Sentinel — default
+
+| Role | Value | Use |
 | --- | --- | --- |
-| Canvas | `#F2F4EF` | Soft stone background |
-| Surface | `#FAFBF7` | Cards and input areas |
-| Forest | `#174C38` | Primary action and trusted structure |
-| Signal | `#B9DE58` | Availability and focused emphasis |
-| Amber | `#A96525` | Caution that needs attention |
-| Danger | `#B93D45` | A concrete high-risk local finding |
+| Canvas | `#0A0E11` | App background |
+| Surface | `#12191D` | Primary panel |
+| Muted surface | `#172126` | Supporting panel |
+| Raised surface | `#1B252A` | Dense controls and technical rows |
+| Border | `#2A393E` | Structural separators |
+| Text | `#F1F4EF` | Primary text |
+| Muted text | `#9BA9A9` | Technical context |
+| Protection | `#C7F36B` | Ready/positive state and primary action |
+| Signal | `#4BD6B4` | Technical movement and navigation emphasis |
+| Caution | `#F0B451` | Permission and review state |
+| Threat | `#F06B69` | Concrete high-risk finding |
 
-The default experience is warm light. A purpose-designed dark mode is available from Profile and retains the same meaning for status colours.
+### Light mode
 
-## Type and layout
+Light mode is intentionally not a white conversion. It uses `#EEF1ED` canvas, `#FAFBF8` surfaces, forest `#2E6B42`, and signal teal `#137D69` while keeping amber and danger semantic.
 
-- Display uses the platform’s medium system face; body uses the native sans-serif; technical labels use the platform monospace face.
-- Titles use short, plain language. No security jargon is used as decoration.
-- The base spacing scale is 4, 8, 12, 16, 24, 32, 44, and 60 points.
-- Corners are restrained: 8, 14, 22, or 30 points depending on component weight.
-- Bottom navigation is primary, low-emphasis, and appears only on primary screens.
+## Typography
 
-## Motion and feedback
+- Display: Android `sans-serif-medium` / iOS `Avenir Next Demi Bold`
+- Body: Android `sans-serif` / iOS `Avenir Next`
+- Technical labels: Android `monospace` / iOS `Menlo`
 
-- Screen transitions use a 260 ms native opacity and vertical-settle motion.
-- The reusable Signal Trace moves only when there is an explicit active state; it remains still when monitoring is unavailable.
-- Link and file assessments respond immediately to the local result. Vibration differentiates a low-risk structural result from a result that needs attention.
-- There are no fake loading percentages, countdowns, network events, or progress animations.
+Large display text is used only for posture and task entry. Mono labels identify sources, module states, and actual boundaries; they are not decorative filler.
 
-## Accessibility and honesty
+## Layout and components
 
-- Controls have touch-safe dimensions and platform accessibility roles where relevant.
-- Status is always stated in text, not only by colour.
-- “Clear” means no high-risk signal was found by the documented local checks; it is not a safety guarantee.
-- Monitoring, permissions, and unavailable capabilities are shown as boundaries, never as active protection.
+- Spacing: 4, 8, 12, 16, 24, 32, 44, 60 points.
+- Corners: 7, 12, 18, 26 points. Key technical boards use square edges deliberately.
+- Sentinel Core: dashboard visual; its six nodes correspond to the real module capability records.
+- Threat Constellation: local alert events or visibly labelled demo events only.
+- Scan Trace: stage-driven trace for URL structural analysis, file metadata inspection, and labelled demo diagnostics.
+- Security Timeline: local saved assessments and alerts in chronological order.
+
+## Accessibility
+
+- Status always has text and colour.
+- Controls use Android-friendly touch areas and accessibility roles for tabs/buttons.
+- Reduced Motion persists as a user setting and removes non-essential movement.
+- Long subjects are line-limited in dense technical rows to protect layout on small screens.

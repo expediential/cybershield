@@ -7,20 +7,30 @@ type ThemeContextValue = {
   mode: ThemeMode;
   theme: Theme;
   setMode: (mode: ThemeMode) => void;
+  demoMode: boolean;
+  setDemoMode: (enabled: boolean) => void;
+  reducedMotion: boolean;
+  setReducedMotion: (enabled: boolean) => void;
   ready: boolean;
 };
 
 const preferenceKey = '@cybershield/theme/v1';
+const demoKey = '@cybershield/demo-mode/v1';
+const reducedMotionKey = '@cybershield/reduced-motion/v1';
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: PropsWithChildren) {
-  const [mode, setModeState] = useState<ThemeMode>('light');
+  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [demoMode, setDemoModeState] = useState(false);
+  const [reducedMotion, setReducedMotionState] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(preferenceKey)
-      .then((stored) => {
-        if (stored === 'light' || stored === 'dark') setModeState(stored);
+    Promise.all([AsyncStorage.getItem(preferenceKey), AsyncStorage.getItem(demoKey), AsyncStorage.getItem(reducedMotionKey)])
+      .then(([storedTheme, storedDemo, storedReducedMotion]) => {
+        if (storedTheme === 'light' || storedTheme === 'dark') setModeState(storedTheme);
+        setDemoModeState(storedDemo === 'true');
+        setReducedMotionState(storedReducedMotion === 'true');
       })
       .finally(() => setReady(true));
   }, []);
@@ -30,7 +40,17 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     AsyncStorage.setItem(preferenceKey, nextMode).catch(() => undefined);
   };
 
-  const value = useMemo(() => ({ mode, theme: themeFor(mode), setMode, ready }), [mode, ready]);
+  const setDemoMode = (enabled: boolean) => {
+    setDemoModeState(enabled);
+    AsyncStorage.setItem(demoKey, String(enabled)).catch(() => undefined);
+  };
+
+  const setReducedMotion = (enabled: boolean) => {
+    setReducedMotionState(enabled);
+    AsyncStorage.setItem(reducedMotionKey, String(enabled)).catch(() => undefined);
+  };
+
+  const value = useMemo(() => ({ mode, theme: themeFor(mode), setMode, demoMode, setDemoMode, reducedMotion, setReducedMotion, ready }), [mode, demoMode, reducedMotion, ready]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

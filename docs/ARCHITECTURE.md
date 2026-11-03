@@ -1,56 +1,66 @@
 # Architecture
 
-## Principles
+## Product boundaries
 
-1. **Local-first by default.** Link checks and activity history work without a server.
-2. **Capability honesty.** The app distinguishes ready, permission-required, configuration-required, and limited areas.
-3. **No security theatre.** A visual state never substitutes for an engine, system permission, or verified signal.
-4. **Small feature boundaries.** The app shell composes focused screens and shared components; feature logic does not live in one giant screen file.
+CyberShield is a local-first Expo Android application. It has a functional local URL structural analyser, Android file picker metadata inspection, and persisted local history. Advanced Android-security functions are visible as dedicated modules but remain explicitly unconnected until native integrations exist.
 
-## Mobile
-
-`App.tsx` owns the small offline navigation state, Android back handling, screen-settle animation, and persisted history. Feature modules own their own visual workflow.
+## Mobile structure
 
 ~~~text
-App shell
-├── ThemeProvider                 persisted light/dark preference
-├── QuietSignal components        shared brand, status, trace, coverage, navigation
-├── Feature screens               home, protection, scan, activity, monitoring, profile
-├── urlScanner                    pure deterministic URL assessment
-└── history service               AsyncStorage persistence
+App.tsx                         state shell, Android back behaviour, transitions
+src/core/ThemeProvider.tsx      persisted theme, reduced motion, demo preference
+src/core/navigation.ts          route identifiers
+src/design/tokens.ts            Sentinel visual/motion tokens
+src/components/QuietSignal.tsx  brand, module symbols, Sentinel Core, traces, timelines
+src/domain/
+  capabilities.ts               module availability records
+  urlScanner.ts                 deterministic local URL logic
+  productState.ts               posture, analytics, alert derivation
+  demo.ts                       isolated demonstration records
+src/features/
+  home/                         dashboard
+  protection/                   full module index
+  scanner/                      URL and metadata workflows
+  modules/                      app, Wi-Fi, network and Bluetooth workspaces
+  activity/, alerts/, analytics/, profile/
+src/services/history.ts         AsyncStorage persistence
 ~~~
 
-The URL scanner normalizes an input, permits only HTTP/S, and emits explainable structural findings. It can report an invalid input, an unknown address, a local suspicious signal, a reserved local blocklist match, or no high-risk signal from the checks available. It does not request a page, follow a redirect, or use a reputation API.
+`App.tsx` deliberately retains a small, dependency-free route state rather than installing a router. Every declared route is reachable through a primary navigation path or a direct action in a parent screen.
 
-The file flow uses `expo-document-picker`. It reads only metadata offered by the Android picker. It does not execute or upload a selected file and does not imply a malware verdict.
+## Data flow
 
-The monitoring workspace intentionally shows no sample telemetry. A usable monitor would need native Android code, user consent, a visible stop control, and a privacy review.
+~~~text
+URL input ──→ urlScanner ──→ UrlScanResult ──→ local history ──→ alerts / timeline / analytics
+File picker ─→ metadata result ──────────────→ local history ──→ alerts / timeline / analytics
+Demo Mode ───→ in-memory demo records ───────→ module view only (never history/analytics)
+~~~
 
-## Backend
+## URL assessment
 
-The optional FastAPI service exposes versioned endpoints under `/api/v1`:
+`urlScanner.ts` accepts HTTP/S addresses only, normalizes input, and applies explainable checks for HTTP, shorteners, punycode, IP hosts, misleading user-info, credential-lure paths, risky TLDs, complex hosts, and a local test blocklist. It does not fetch the page, follow redirects, or query an external reputation service.
 
-| Endpoint | Purpose | Boundary |
+## File assessment
+
+`expo-document-picker` returns Android-provided metadata. The app evaluates whether the filename has an installer/executable extension and always says whether an antivirus engine ran. It does not execute, hash, upload, or classify file contents.
+
+## Native extension boundaries
+
+| Module | Required native / service work | Current state |
 | --- | --- | --- |
-| `GET /health` | readiness | no sensitive input |
-| `POST /scans/url` | repeatable local URL rules | no external calls |
-| `POST /scans/files` | bounded metadata upload contract | 10 MB ceiling; no execution |
+| Application Security | Kotlin PackageManager bridge, package visibility policy | Not connected |
+| Wi-Fi Security | Kotlin connectivity/Wi-Fi adapter, version-specific permissions | Not connected |
+| Network Monitor | Consent-based Kotlin `VpnService`, persistent stop control | Not connected |
+| Bluetooth Security | Android nearby-device permissions and Bluetooth adapter | Not connected |
+| File engines | Isolated ClamAV/YARA worker and opt-in backend client | Not connected |
+| URL reputation | Provider adapter, backend-held keys, privacy disclosure | Not configured |
 
-Production scanning needs a queue and isolated worker rather than scans in the API process:
+No advanced module can report live device data until this work is implemented and tested.
+
+## Optional backend
+
+The FastAPI sample exposes health, URL assessment, and a size-bounded metadata upload contract. A production scanning architecture must use isolated queued workers:
 
 ~~~text
-client → authenticated API → scan-job queue → isolated ClamAV/YARA worker → signed result store
+mobile client → authenticated API → queue → isolated scan worker → signed result store
 ~~~
-
-## Extension points
-
-| Module | Mobile adapter | Backend adapter | Current state |
-| --- | --- | --- | --- |
-| URL security | local structural parser | opt-in reputation provider | local parser ready |
-| Files | DocumentPicker | isolated scan worker | metadata only |
-| Installed apps | Kotlin PackageManager bridge | chosen APK analysis | unavailable |
-| Wi-Fi | Kotlin connectivity bridge | none | unavailable |
-| Network | consented `VpnService` | optional enrichment | no native monitor |
-| Bluetooth | Kotlin Bluetooth bridge | none | unavailable |
-
-Navigation and UI components must remain independent of a particular threat-intelligence vendor.

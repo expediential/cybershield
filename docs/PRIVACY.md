@@ -7,8 +7,10 @@ CyberShield aims to minimize data exposure.
 - URL structure analysis runs on-device.
 - Scan history is retained locally through unencrypted app storage. It contains no credentials and is not suitable for secrets.
 - The saved light/dark appearance preference is retained locally through the same app storage.
+- Reduced Motion and Demo Mode preferences are retained locally through the same app storage.
+- Demo Mode records stay in memory only. They are not written to local history, alerts, analytics, or posture state.
 - No analytics SDK is included.
-- No account system, password collection, VPN capture, Bluetooth scan, Wi-Fi read, or installed-app inventory is enabled in the MVP.
+- No account system, password collection, VPN capture, Bluetooth scan, Wi-Fi read, installed-app inventory, or external URL reputation lookup is enabled in the MVP.
 - File selection uses the operating-system picker. The MVP derives a local metadata result and does not upload the file.
 
 ## If a backend is enabled

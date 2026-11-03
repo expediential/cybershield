@@ -1,55 +1,36 @@
-# CyberShield
+# CyberShield — Sentinel
 
-CyberShield is a local-first Android security companion built around a simple promise: explain what was actually checked, what needs setup, and what is not available. Version 0.3.0 introduces the **Quiet Signal** product design: warm, calm, and clear rather than an imitation “hacker” dashboard.
+CyberShield is an Android cybersecurity companion with a complete product map: Phishing Protection, File Security, Application Security, Wi-Fi Security, Network Monitor, Bluetooth Security, Threat Alerts, Activity, Analytics, and privacy controls.
 
-## What works now
+Version 0.4.0 restores the full surface as a dark-first **Sentinel** experience. It is direct about which functions are real today and which need Android-native or backend integration.
 
-| Capability | Status | What it does |
-| --- | --- | --- |
-| Link assessment | Ready | Inspects URL structure locally: scheme, shorteners, punycode, IP hosts, risky TLDs, misleading URL forms, and a reserved local test blocklist. It never visits the link. |
-| File assessment | Ready | Opens Android’s document picker and reports the metadata Android shares. Files are not executed or uploaded. |
-| Activity history | Ready | Saves local assessment summaries with AsyncStorage. |
-| Theme preference | Ready | A light-first UI with a persistent purpose-designed dark mode. |
-| Monitoring workspace | Boundary shown | No network traffic, app inventory, Wi-Fi details, Bluetooth devices, or VPN session are collected in this build. |
-| FastAPI contract | Ready for integration | Provides local URL rules and a bounded metadata-upload contract; the mobile MVP does not depend on it. |
+## What works today
 
-## Product principles
+| Module | Current capability |
+| --- | --- |
+| Phishing Protection | Local URL normalization and structural analysis: HTTP, shorteners, punycode, IP hosts, suspicious URL patterns, risky TLDs, plus a local test blocklist. |
+| File Security | Android system file picker and metadata inspection. Files are never executed or uploaded. |
+| Threat Alerts | Derived from suspicious or malicious saved local assessments, with read/dismiss state. |
+| Scan history | Local AsyncStorage persistence, filters, and clear control. |
+| Security Analytics | Real local assessment trends and outcome distribution. |
+| Demo Mode | Clearly labelled, in-memory sample workspaces for unconnected App, Wi-Fi, Network, and Bluetooth modules. |
 
-- No fabricated security score, timers, monitoring events, or background-protection claims.
-- A “clear” link result only means the documented local checks found no high-risk structural signal. It is not a guarantee.
-- A file result is metadata-only until a separately configured, isolated malware engine exists.
-- Permission, configuration, and native capability boundaries are visible in the Protection centre.
+## What is not connected
 
-See [the Quiet Signal design system](docs/DESIGN_SYSTEM.md), [architecture](docs/ARCHITECTURE.md), [privacy boundaries](docs/PRIVACY.md), and [future integration guidance](docs/INTEGRATIONS.md).
+Installed-app auditing, Wi-Fi diagnostics, Bluetooth discovery, VPN-based network monitoring, antivirus/YARA scanning, and external URL-reputation providers need additional native Android or backend implementation. Their dedicated screens state this explicitly; CyberShield does not present sample data as device data.
 
-## Mobile architecture
+See [Product Features](docs/PRODUCT_FEATURES.md), [Architecture](docs/ARCHITECTURE.md), [Art Direction](docs/ART_DIRECTION.md), [Design System](docs/DESIGN_SYSTEM.md), [Animation System](docs/ANIMATION_SYSTEM.md), [Security](docs/SECURITY.md), and [Privacy](docs/PRIVACY.md).
 
-~~~text
-App.tsx — app shell, transitions, history and in-memory navigation
-├── src/core/ThemeProvider.tsx
-├── src/components/QuietSignal.tsx
-├── src/brand/SignalMark.tsx
-├── src/features/
-│   ├── home/
-│   ├── protection/
-│   ├── scanner/
-│   ├── activity/
-│   ├── monitoring/
-│   └── profile/
-├── src/domain/urlScanner.ts
-└── src/services/history.ts
-~~~
+## Run
 
-## Run locally
-
-Node 22.13 or later is required.
+Node 22.13+ is required.
 
 ~~~powershell
 npm install
 npm run start
 ~~~
 
-Use an Android emulator or USB-debuggable device from the Expo terminal. The link and metadata workflows work without a backend.
+Run on an Android emulator or USB-debuggable device from Expo. The URL and file metadata workflows do not need a backend.
 
 ## Verify
 
@@ -58,11 +39,9 @@ npm run typecheck
 npm run test
 ~~~
 
-The URL scanner test suite covers deterministic local verdicts. Device and accessibility testing remain required for a public release.
+## Build a standalone Android APK
 
-## Build an Android APK
-
-With JDK 17+, Android SDK Platform 37, and Android build tools installed:
+With JDK 17+ and Android SDK Platform 37:
 
 ~~~powershell
 npm install
@@ -73,15 +52,14 @@ Copy-Item app\build\outputs\apk\release\app-release.apk ..\CyberShield.apk
 Get-FileHash ..\CyberShield.apk -Algorithm SHA256
 ~~~
 
-The GitHub Actions workflow builds a standalone release APK on `main`. A verified `v*` tag publishes `CyberShield.apk` and a SHA-256 checksum. Android release notes are in [docs/ANDROID_BUILD.md](docs/ANDROID_BUILD.md).
+GitHub Actions performs the same standalone release build. A version tag matching v-star publishes:
 
-## Security and privacy
+<https://github.com/expediential/cybershield/releases/latest/download/CyberShield.apk>
 
-- Do not ship reputation-provider tokens in the app.
-- Do not execute, upload, or call a metadata-only file result an antivirus scan.
-- Any future VPN monitor must be a consented native Android feature with a visible stop control.
-- Any deep file scan must run in an isolated worker with limits on size, time, CPU, and memory.
+## Security boundaries
 
-## Licence
-
-No licence is currently provided. Select one before distribution and review every future engine’s licence separately.
+- A local clear verdict is not a guarantee that a website or file is safe.
+- No external URL intelligence key is embedded in the mobile app.
+- File metadata inspection is not malware scanning.
+- Demo Mode data is not stored in local history or analytics.
+- A future VPN monitor must use explicit Android consent and a visible stop control.
