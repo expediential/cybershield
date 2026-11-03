@@ -35,30 +35,28 @@ function useLoopingValue(enabled: boolean, duration: number) {
   return value;
 }
 
-function SignalBar({ height, index, active }: { height: number; index: number; active: boolean }) {
-  const pulse = useRef(new Animated.Value(0.45)).current;
-
-  useEffect(() => {
-    if (!active) {
-      pulse.stopAnimation();
-      pulse.setValue(0.45);
-      return;
-    }
-    const animation = Animated.loop(Animated.sequence([
-      Animated.delay(index * 54),
-      Animated.timing(pulse, { toValue: 1, duration: 520 + (index % 4) * 90, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0.32, duration: 660 + (index % 3) * 110, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-    ]));
-    animation.start();
-    return () => animation.stop();
-  }, [active, index, pulse]);
-
-  return <Animated.View style={[styles.bar, { height, opacity: pulse, backgroundColor: index % 5 === 0 ? color.accent : color.soft, transform: [{ scaleY: pulse }] }]} />;
-}
-
 export function Waveform({ active = true }: { active?: boolean }) {
   const bars = [15, 32, 19, 45, 22, 26, 16, 40, 18, 34, 25, 50, 19, 17, 38, 27, 47, 21, 32, 14, 28, 18, 36, 16];
-  return <View style={styles.wave}>{bars.map((height, index) => <SignalBar key={index} height={height} index={index} active={active} />)}</View>;
+  const phase = useLoopingValue(active, 2800);
+
+  return (
+    <View style={styles.wave}>
+      {bars.map((height, index) => {
+        const restingScale = 0.38 + (index % 4) * 0.09;
+        const peakScale = 0.78 + (index % 5) * 0.05;
+        const shift = (index % 8) / 8;
+        const scale = phase.interpolate({
+          inputRange: [0, Math.max(0.01, shift - 0.14), shift + 0.04, Math.min(0.99, shift + 0.25), 1],
+          outputRange: [restingScale, restingScale, peakScale, restingScale, restingScale],
+        });
+        const opacity = phase.interpolate({
+          inputRange: [0, Math.max(0.01, shift - 0.14), shift + 0.04, Math.min(0.99, shift + 0.25), 1],
+          outputRange: [0.35, 0.35, 1, 0.42, 0.35],
+        });
+        return <Animated.View key={index} style={[styles.bar, { height, opacity, backgroundColor: index % 5 === 0 ? color.accent : color.soft, transform: [{ scaleY: scale }] }]} />;
+      })}
+    </View>
+  );
 }
 
 export function TelemetryBackdrop({ active = true }: { active?: boolean }) {
@@ -112,8 +110,7 @@ export function ScanRadar({ phase, progress }: { phase: 'idle' | 'scanning' | 'c
       <View style={styles.scanRadarRingOuter} />
       <View style={styles.scanRadarRingInner} />
       <View style={styles.scanRadarCore}>
-        <Text style={styles.scanRadarNumber}>{phase === 'idle' ? '00' : String(progress).padStart(2, '0')}</Text>
-        <Text style={styles.scanRadarPercent}>%</Text>
+        <View style={styles.scanRadarValue}><Text style={styles.scanRadarNumber}>{phase === 'idle' ? '00' : String(progress).padStart(2, '0')}</Text><Text style={styles.scanRadarPercent}>%</Text></View>
         <Text style={styles.scanRadarHeadline}>{headline}</Text>
         <Text style={styles.scanRadarDetail}>{detail}</Text>
       </View>
@@ -197,8 +194,9 @@ const styles = StyleSheet.create({
   scanRadarRingOuter: { position: 'absolute', width: 198, height: 198, borderRadius: 99, borderWidth: 1, borderColor: '#355547' },
   scanRadarRingInner: { position: 'absolute', width: 122, height: 122, borderRadius: 61, borderWidth: 1, borderColor: color.accent + '99', borderLeftColor: color.accent, borderLeftWidth: 4 },
   scanRadarCore: { alignItems: 'center', justifyContent: 'center' },
+  scanRadarValue: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', minHeight: 50 },
   scanRadarNumber: { color: color.text, fontSize: 42, fontWeight: '300', letterSpacing: -2, fontVariant: ['tabular-nums'] },
-  scanRadarPercent: { position: 'absolute', top: 10, left: 49, color: color.muted, fontSize: 14, fontWeight: '700' },
+  scanRadarPercent: { color: color.muted, fontSize: 14, fontWeight: '700', marginLeft: 3 },
   scanRadarHeadline: { color: color.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.15, marginTop: 2 },
   scanRadarDetail: { color: color.muted, fontSize: 7, letterSpacing: 0.55, marginTop: 5 },
   scanNodeTop: { position: 'absolute', top: 15, right: 19, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 7, paddingVertical: 5, borderRadius: radius.md, backgroundColor: color.surface3 },

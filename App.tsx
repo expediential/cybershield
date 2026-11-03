@@ -187,7 +187,7 @@ export default function App() {
       <Animated.View style={[styles.screenTransition, { opacity: screenMotion, transform: [{ translateY: screenTranslate }] }]}>
         {screen === 'home' && <HomeScreen score={score} history={history} onScan={() => setScreen('scan')} onNavigate={setScreen} onModule={openModule} />}
         {screen === 'protection' && <ProtectionScreen onMonitor={() => setScreen('monitor')} onModule={openModule} />}
-        {screen === 'scan' && <ScanScreen url={url} setUrl={setUrl} urlPhase={urlPhase} result={urlResult} submitUrl={submitUrl} mode={scanMode} setMode={setScanMode} chooseFile={chooseFile} fileNote={fileNote} onHistory={() => setScreen('history')} deviceScanPhase={deviceScanPhase} deviceScanProgress={deviceScanProgress} startDeviceScan={startDeviceScan} />}
+        {screen === 'scan' && <ScanScreen url={url} setUrl={setUrl} urlPhase={urlPhase} result={urlResult} submitUrl={submitUrl} mode={scanMode} setMode={setScanMode} chooseFile={chooseFile} fileNote={fileNote} onHistory={() => setScreen('history')} onOpenMonitor={() => setScreen('monitor')} isMonitoring={isMonitoring} setIsMonitoring={setIsMonitoring} deviceScanPhase={deviceScanPhase} deviceScanProgress={deviceScanProgress} startDeviceScan={startDeviceScan} />}
         {screen === 'activity' && <ActivityScreen history={history} onHistory={() => setScreen('history')} onAlerts={() => setScreen('alerts')} />}
         {screen === 'settings' && <SettingsScreen onLearning={() => setScreen('learning')} onOnboarding={() => setScreen('onboarding')} />}
         {screen === 'monitor' && <MonitorScreen spin={spin} isMonitoring={isMonitoring} setIsMonitoring={setIsMonitoring} />}
@@ -268,14 +268,14 @@ function ProtectionScreen({ onMonitor, onModule }: { onMonitor: () => void; onMo
           <Text style={styles.chevron}>›</Text>
         </Pressable>
       ))}
-      <View style={styles.factStrip}><Text style={styles.factNumber}>0</Text><Text style={styles.factText}>Android permissions requested{'\n'}in this Expo build</Text><Text style={styles.factEnd}>HONEST BY DEFAULT</Text></View>
+      <View style={styles.factStrip}><Text style={styles.factNumber}>0</Text><Text style={styles.factText}>Android permissions requested in this Expo build</Text><Text style={styles.factEnd}>HONEST BY DEFAULT</Text></View>
       <View style={{ height: 95 }} />
     </ScrollView>
   );
 }
 
-function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, chooseFile, fileNote, onHistory, deviceScanPhase, deviceScanProgress, startDeviceScan }: {
-  url: string; setUrl: (value: string) => void; urlPhase: 'idle' | 'scanning' | 'complete'; result: UrlScanResult | null; submitUrl: () => void; mode: ScanMode; setMode: (mode: ScanMode) => void; chooseFile: () => void; fileNote: string | null; onHistory: () => void; deviceScanPhase: DeviceScanPhase; deviceScanProgress: number; startDeviceScan: () => void;
+function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, chooseFile, fileNote, onHistory, onOpenMonitor, isMonitoring, setIsMonitoring, deviceScanPhase, deviceScanProgress, startDeviceScan }: {
+  url: string; setUrl: (value: string) => void; urlPhase: 'idle' | 'scanning' | 'complete'; result: UrlScanResult | null; submitUrl: () => void; mode: ScanMode; setMode: (mode: ScanMode) => void; chooseFile: () => void; fileNote: string | null; onHistory: () => void; onOpenMonitor: () => void; isMonitoring: boolean; setIsMonitoring: (value: boolean) => void; deviceScanPhase: DeviceScanPhase; deviceScanProgress: number; startDeviceScan: () => void;
 }) {
   const reviewCopy = deviceScanPhase === 'scanning'
     ? 'Reviewing the local engines, file inspector, and Android permission boundaries.'
@@ -285,7 +285,11 @@ function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, c
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <TopTitle kicker="SCAN CENTRE" title="FULL SECURITY REVIEW" description="One calm place to understand your device coverage, assess links, inspect files, and open protection modules." />
+      <TopTitle kicker="SCAN CENTRE" title="PROTECTION IN MOTION" description="Always-on signal awareness comes first. Run a focused manual review only when you have something to inspect." />
+
+      <RealtimeMonitoringCard isMonitoring={isMonitoring} setIsMonitoring={setIsMonitoring} onOpenMonitor={onOpenMonitor} />
+
+      <View style={styles.manualSectionLead}><View style={styles.manualSectionLine} /><View><Text style={styles.manualSectionKicker}>MANUAL SECURITY REVIEW</Text><Text style={styles.manualSectionCopy}>Choose a deeper check when you need it.</Text></View></View>
 
       <View style={styles.scanHero}>
         <TelemetryBackdrop active={deviceScanPhase !== 'complete'} />
@@ -342,6 +346,25 @@ function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, c
   );
 }
 
+function RealtimeMonitoringCard({ isMonitoring, setIsMonitoring, onOpenMonitor }: { isMonitoring: boolean; setIsMonitoring: (value: boolean) => void; onOpenMonitor: () => void }) {
+  return (
+    <View style={styles.realtimeCard}>
+      <TelemetryBackdrop active={isMonitoring} />
+      <View style={styles.realtimeContent}>
+        <View style={styles.realtimeTopline}>
+          <View style={styles.realtimePill}><SignalMark severity={isMonitoring ? 'safe' : 'info'} /><Text style={styles.realtimePillText}>{isMonitoring ? 'ALL-TIME MONITORING ON' : 'MONITORING PAUSED'}</Text></View>
+          <Switch value={isMonitoring} onValueChange={setIsMonitoring} trackColor={{ false: color.surface3, true: color.accent + '99' }} thumbColor={isMonitoring ? color.text : color.muted} />
+        </View>
+        <Text style={styles.realtimeTitle}>Live local signal watch</Text>
+        <Text style={styles.realtimeCopy}>{isMonitoring ? 'Animated telemetry is active so you can follow local protection status at a glance.' : 'Enable monitoring to animate the local signal stream and preview its status feed.'}</Text>
+        <View style={styles.realtimeReadout}><View><Text style={styles.realtimeMetric}>{isMonitoring ? 'LIVE' : 'IDLE'}</Text><Text style={styles.realtimeMetricLabel}>STATUS</Text></View><View style={styles.realtimeMetricDivider} /><View><Text style={styles.realtimeMetric}>{isMonitoring ? '03' : '00'}</Text><Text style={styles.realtimeMetricLabel}>SIGNALS</Text></View><View style={styles.realtimeMetricDivider} /><View><Text style={styles.realtimeMetric}>LOCAL</Text><Text style={styles.realtimeMetricLabel}>SCOPE</Text></View></View>
+        <View style={styles.realtimeWaveWrap}><Waveform active={isMonitoring} /></View>
+        <View style={styles.realtimeFooter}><Text style={styles.realtimeBoundary}>Sample telemetry only. No traffic is captured and no VPN is started.</Text><Pressable hitSlop={8} onPress={onOpenMonitor}><Text style={styles.realtimeOpen}>OPEN LIVE VIEW</Text></Pressable></View>
+      </View>
+    </View>
+  );
+}
+
 function ScanOverview() {
   const surfaces: { name: string; state: string; detail: string; severity: Severity }[] = [
     { name: 'Link & message guard', state: 'READY', detail: 'On-device structural checks', severity: 'safe' },
@@ -389,7 +412,7 @@ function ActivityScreen({ history, onHistory, onAlerts }: { history: ScanHistory
       {recent.length ? recent.map((item) => <HistoryRow key={item.id} item={item} />) : <EmptyState title="No local assessments yet" description="Use Scan Centre to inspect a link or select a file." />}
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>ASSESSMENT COVERAGE</Text><Text style={styles.meta}>TODAY</Text></View>
       <View style={styles.analyticsCard}>
-        <View style={styles.analyticsHeading}><Text style={styles.analyticsNumber}>{history.length}</Text><Text style={styles.analyticsLabel}>LOCAL SCANS{'\n'}STORED ON DEVICE</Text></View>
+        <View style={styles.analyticsHeading}><Text style={styles.analyticsNumber}>{history.length}</Text><Text style={styles.analyticsLabel}>LOCAL SCANS STORED ON DEVICE</Text></View>
         <Waveform />
         <View style={styles.coverageGrid}><Metric number="01" label="URL ENGINE" status="AVAILABLE" /><Metric number="00" label="FILE ENGINES" status="CONFIGURE" /><Metric number="00" label="VPN EVENTS" status="OFF" /></View>
       </View>
@@ -461,7 +484,7 @@ function SettingsScreen({ onLearning, onOnboarding }: { onLearning: () => void; 
       <SettingsRow title="Notifications" value="NO BACKGROUND ALERTS" />
       <Pressable style={styles.settingAction} onPress={onLearning}><View><Text style={styles.settingActionTitle}>Security field notes</Text><Text style={styles.settingActionCopy}>Phishing, public Wi-Fi and privacy guides</Text></View><Text style={styles.chevron}>›</Text></Pressable>
       <Pressable style={styles.settingAction} onPress={onOnboarding}><View><Text style={styles.settingActionTitle}>Review privacy promise</Text><Text style={styles.settingActionCopy}>What CyberShield can and cannot see</Text></View><Text style={styles.chevron}>›</Text></Pressable>
-      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.2.1 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
+      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.2.2 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
       <View style={{ height: 95 }} />
     </ScrollView>
   );
@@ -480,9 +503,9 @@ function LearningScreen() {
 function OnboardingScreen() {
   return (
     <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 80 }]} showsVerticalScrollIndicator={false}>
-      <Text style={styles.onboardWordmark}>CYBER{'\n'}SHIELD</Text><Text style={styles.onboardTagline}>Know your digital environment.{'\n'}Stay ahead of threats.</Text>
+      <Text style={styles.onboardWordmark}>CYBERSHIELD</Text><Text style={styles.onboardTagline}>Know your digital environment. Stay ahead of threats.</Text>
       <View style={styles.onboardRule} />
-      <Text style={styles.onboardTitle}>THE HONEST{'\n'}PROTECTION PROMISE</Text>
+      <Text style={styles.onboardTitle}>THE HONEST PROTECTION PROMISE</Text>
       <FindingRow severity="safe" title="We assess what is available" description="The local URL engine works offline and explains exactly which checks ran." />
       <FindingRow severity="warning" title="We ask before accessing" description="Device inventory, Wi-Fi, Bluetooth and VPN monitoring require explicit Android permissions." />
       <FindingRow severity="info" title="We state our limits" description="A clear local assessment never means an absolute guarantee. Missing services are disclosed, not painted green." />
@@ -602,6 +625,25 @@ const styles = StyleSheet.create({
   factNumber: { color: color.warning, fontSize: 36, fontWeight: '300', fontVariant: ['tabular-nums'] },
   factText: { color: color.text, fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 16 },
   factEnd: { color: color.muted, fontSize: 8, letterSpacing: .7, width: 57 },
+  realtimeCard: { minHeight: 306, overflow: 'hidden', backgroundColor: '#09100D', borderWidth: 1, borderColor: '#28513C', marginBottom: 26 },
+  realtimeContent: { padding: 15 },
+  realtimeTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  realtimePill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 9, paddingVertical: 7, borderRadius: 16, backgroundColor: color.surface3 + 'E6', borderWidth: 1, borderColor: '#315342' },
+  realtimePillText: { color: color.text, fontSize: 8, letterSpacing: .72, fontWeight: '900' },
+  realtimeTitle: { color: color.text, fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -.6, marginTop: 16, maxWidth: 240 },
+  realtimeCopy: { color: color.muted, fontSize: 11, lineHeight: 16, marginTop: 6, maxWidth: 305 },
+  realtimeReadout: { flexDirection: 'row', alignItems: 'center', backgroundColor: color.surface + 'E8', borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#294537', paddingVertical: 11, paddingHorizontal: 12, marginTop: 16 },
+  realtimeMetric: { color: color.accent, fontSize: 13, lineHeight: 17, fontWeight: '800', letterSpacing: .3, fontVariant: ['tabular-nums'] },
+  realtimeMetricLabel: { color: color.muted, fontSize: 7, lineHeight: 11, letterSpacing: .68, fontWeight: '800', marginTop: 1 },
+  realtimeMetricDivider: { width: 1, height: 28, backgroundColor: color.line, marginHorizontal: 16 },
+  realtimeWaveWrap: { paddingHorizontal: 4, paddingTop: 4, backgroundColor: color.surface + 'AA', borderBottomWidth: 1, borderColor: '#294537' },
+  realtimeFooter: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 11 },
+  realtimeBoundary: { color: '#91A79B', fontSize: 9, lineHeight: 13, flex: 1 },
+  realtimeOpen: { color: color.accent, fontSize: 8, letterSpacing: .72, fontWeight: '900', textAlign: 'right' },
+  manualSectionLead: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 13 },
+  manualSectionLine: { width: 3, height: 34, backgroundColor: color.accent },
+  manualSectionKicker: { color: color.text, fontSize: 12, letterSpacing: .35, fontWeight: '900' },
+  manualSectionCopy: { color: color.muted, fontSize: 10, marginTop: 3 },
   scanHero: { minHeight: 474, overflow: 'hidden', backgroundColor: '#0A100D', borderWidth: 1, borderColor: '#244432', marginBottom: 18 },
   scanHeroContent: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 16 },
   scanHeroTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
