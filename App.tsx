@@ -254,7 +254,7 @@ function HomeScreen({ score, history, onScan, onNavigate, onModule }: { score: n
 function ProtectionScreen({ onMonitor, onModule }: { onMonitor: () => void; onModule: (module: ModuleName) => void }) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <TopTitle kicker="PROTECTION" title="DEVICE{'\n'}SIGNALS" description="Each capability tells you exactly what is available, missing, or illustrative." />
+      <TopTitle kicker="PROTECTION" title="DEVICE SIGNALS" description="Each capability tells you exactly what is available, missing, or illustrative." />
       <Pressable style={styles.monitorPreview} onPress={onMonitor}>
         <View style={styles.previewDisc}><Text style={styles.previewValue}>04</Text><Text style={styles.previewLabel}>INPUTS</Text></View>
         <View style={{ flex: 1 }}><Text style={styles.cardKicker}>REAL-TIME MONITORING</Text><Text style={styles.previewTitle}>Observe current protection state</Text><Text style={styles.previewCopy}>Sample event feed • no VPN traffic interception</Text></View>
@@ -383,7 +383,7 @@ function ActivityScreen({ history, onHistory, onAlerts }: { history: ScanHistory
   const recent = history.slice(0, 3);
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <TopTitle kicker="ACTIVITY" title="EVIDENCE,{'\n'}NOT NOISE" description="A concise, local record of actions and signals that need your attention." />
+      <TopTitle kicker="ACTIVITY" title="EVIDENCE, NOT NOISE" description="A concise, local record of actions and signals that need your attention." />
       <Pressable style={styles.alertBanner} onPress={onAlerts}><SignalMark severity="warning" /><View style={{ flex: 1 }}><Text style={styles.alertBannerTitle}>02 ACTIVE NOTICES</Text><Text style={styles.alertBannerCopy}>One link assessment awaits review.</Text></View><Text style={styles.chevron}>›</Text></Pressable>
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>RECENT ASSESSMENTS</Text><Pressable onPress={onHistory}><Text style={styles.actionText}>HISTORY</Text></Pressable></View>
       {recent.length ? recent.map((item) => <HistoryRow key={item.id} item={item} />) : <EmptyState title="No local assessments yet" description="Use Scan Centre to inspect a link or select a file." />}
@@ -454,14 +454,14 @@ function ModuleDetailScreen({ module }: { module: typeof moduleItems[number] }) 
 function SettingsScreen({ onLearning, onOnboarding }: { onLearning: () => void; onOnboarding: () => void }) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <TopTitle kicker="CONTROL ROOM" title="PRIVACY{'\n'}IS A FEATURE" description="Review data boundaries and configure integrations without placing secrets in the app." />
+      <TopTitle kicker="CONTROL ROOM" title="PRIVACY IS A FEATURE" description="Review data boundaries and configure integrations without placing secrets in the app." />
       <SettingsRow title="Local storage" value="SCAN HISTORY ON DEVICE" />
       <SettingsRow title="Reputation provider" value="NOT CONFIGURED" />
       <SettingsRow title="File scanning backend" value="NOT CONFIGURED" />
       <SettingsRow title="Notifications" value="NO BACKGROUND ALERTS" />
       <Pressable style={styles.settingAction} onPress={onLearning}><View><Text style={styles.settingActionTitle}>Security field notes</Text><Text style={styles.settingActionCopy}>Phishing, public Wi-Fi and privacy guides</Text></View><Text style={styles.chevron}>›</Text></Pressable>
       <Pressable style={styles.settingAction} onPress={onOnboarding}><View><Text style={styles.settingActionTitle}>Review privacy promise</Text><Text style={styles.settingActionCopy}>What CyberShield can and cannot see</Text></View><Text style={styles.chevron}>›</Text></Pressable>
-      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.2.0 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
+      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.2.1 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
       <View style={{ height: 95 }} />
     </ScrollView>
   );
