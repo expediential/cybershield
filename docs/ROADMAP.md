@@ -1,24 +1,25 @@
 # Roadmap
 
-## Delivered in 0.1.0
+## Delivered in 0.3.0
 
-- [x] Original premium technical visual system
-- [x] Offline local URL-structure assessment
-- [x] Scan history
-- [x] File picker and transparent metadata-only response
-- [x] Optional FastAPI contract
-- [x] Android debug-build CI workflow
+- [x] Quiet Signal design system with a light-first and persistent dark theme
+- [x] Original scalable Signal Mark and code-native visual components
+- [x] Feature-oriented app structure in place of a monolithic interface
+- [x] Honest protection map and quiet monitoring workspace
+- [x] Local URL assessment, local activity history, and metadata-only file workflow
+- [x] Android hardware-back handling and native screen-settle transitions
+- [x] Standalone Android APK CI/release workflow
 
 ## Next
 
-- [ ] Add a clear-history control and encrypted storage configuration
-- [ ] Add backend client with timeouts, typed errors, opt-in provider disclosure
-- [ ] Add isolated queued ClamAV/YARA worker infrastructure
-- [ ] Add unit and UI tests, offline/error test matrix, and accessibility audit
-- [ ] Add Kotlin Android bridges for user-consented Wi-Fi, Bluetooth, and app metadata
-- [ ] Add a user-controlled VpnService monitor only after threat modelling and privacy review
-- [ ] Add MobSF deployment documentation and selected-APK workflow
+- [ ] Clear-history control and encrypted-storage decision
+- [ ] Mobile UI tests, device accessibility audit, and offline/error matrix
+- [ ] Opt-in backend client with typed errors, timeouts, and provider disclosure
+- [ ] Isolated queued ClamAV/YARA worker infrastructure
+- [ ] Kotlin Android bridges for user-consented Wi-Fi, Bluetooth, and app metadata
+- [ ] Threat model and native user-controlled `VpnService` monitor
+- [ ] Selected-APK/MobSF workflow with explicit upload consent
 
 ## Release gate
 
-A public release requires an Android device/emulator test pass, API threat-model review, dependency audit, privacy review, signed artifact, checksum, store-compliance review, and a verified GitHub Release asset.
+A public release requires a physical Android device or emulator pass, accessibility test pass, dependency audit, privacy review, signed artifact, checksum verification, and store-compliance review. An APK produced by CI should not be interpreted as completing those gates.

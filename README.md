@@ -1,128 +1,87 @@
 # CyberShield
 
-**Know your digital environment. Stay ahead of threats.**
+CyberShield is a local-first Android security companion built around a simple promise: explain what was actually checked, what needs setup, and what is not available. Version 0.3.0 introduces the **Quiet Signal** product design: warm, calm, and clear rather than an imitation “hacker” dashboard.
 
-CyberShield is a local-first Android security MVP with a premium technical interface. It is deliberately honest about its boundaries: the included URL engine is functional offline, while capabilities that require Android native modules, operating-system permission, an isolated backend, or external intelligence are labelled as such.
+## What works now
 
-## What is implemented
-
-| Capability | Status | Notes |
+| Capability | Status | What it does |
 | --- | --- | --- |
-| Premium React Native/Expo interface | Implemented | Dashboard, Scan Centre, protection matrix, alerts, activity, settings, onboarding and learning views |
-| Local URL assessment | Implemented | URL normalization, HTTP, link shortener, punycode, IP-host, misleading-address, high-abuse-TLD and local test-blocklist checks |
-| Scan history | Implemented | Persisted locally with AsyncStorage |
-| File selection / metadata assessment | Implemented | Uses the device picker; never executes content; no antivirus verdict without an engine |
-| FastAPI contract | Implemented | Health, URL assessment and size-bounded metadata-upload endpoints |
-| Radial monitor interface | Demonstration-only | Animated sample telemetry; no VPN or traffic interception |
-| App, Wi-Fi and Bluetooth visibility | UI / limitation explanation | Requires native Android permission and capability modules |
-| ClamAV, YARA, MobSF and remote URL intelligence | Planned integration | Must be deployed and configured independently |
+| Link assessment | Ready | Inspects URL structure locally: scheme, shorteners, punycode, IP hosts, risky TLDs, misleading URL forms, and a reserved local test blocklist. It never visits the link. |
+| File assessment | Ready | Opens Android’s document picker and reports the metadata Android shares. Files are not executed or uploaded. |
+| Activity history | Ready | Saves local assessment summaries with AsyncStorage. |
+| Theme preference | Ready | A light-first UI with a persistent purpose-designed dark mode. |
+| Monitoring workspace | Boundary shown | No network traffic, app inventory, Wi-Fi details, Bluetooth devices, or VPN session are collected in this build. |
+| FastAPI contract | Ready for integration | Provides local URL rules and a bounded metadata-upload contract; the mobile MVP does not depend on it. |
 
-## Design
+## Product principles
 
-The product is original and uses a restrained black, mint, and instrumentation-inspired visual language:
+- No fabricated security score, timers, monitoring events, or background-protection claims.
+- A “clear” link result only means the documented local checks found no high-risk structural signal. It is not a guarantee.
+- A file result is metadata-only until a separately configured, isolated malware engine exists.
+- Permission, configuration, and native capability boundaries are visible in the Protection centre.
 
-- Technical typography, fine dividers, tabular metrics and intentional negative space
-- A high-contrast assessment dashboard with a visible coverage boundary
-- Purpose-built waveform and radial monitor components
-- A prominent central Scan action and non-generic module matrix
-- Clear CLEAR, REVIEW, BLOCK, and UNKNOWN states
+See [the Quiet Signal design system](docs/DESIGN_SYSTEM.md), [architecture](docs/ARCHITECTURE.md), [privacy boundaries](docs/PRIVACY.md), and [future integration guidance](docs/INTEGRATIONS.md).
 
-## Architecture
+## Mobile architecture
 
 ~~~text
-Expo mobile client
-├── App.tsx                         screen state and workflows
-├── src/domain/urlScanner.ts         local explainable URL assessment
-├── src/services/history.ts          local scan history
-├── src/components/Visuals.tsx       waveform, radar, severity components
-└── src/design/tokens.ts             design-system primitives
-
-Optional isolated backend
-└── backend/app/main.py
-    ├── GET  /api/v1/health
-    ├── POST /api/v1/scans/url
-    └── POST /api/v1/scans/files
+App.tsx — app shell, transitions, history and in-memory navigation
+├── src/core/ThemeProvider.tsx
+├── src/components/QuietSignal.tsx
+├── src/brand/SignalMark.tsx
+├── src/features/
+│   ├── home/
+│   ├── protection/
+│   ├── scanner/
+│   ├── activity/
+│   ├── monitoring/
+│   └── profile/
+├── src/domain/urlScanner.ts
+└── src/services/history.ts
 ~~~
 
-Read [Architecture](docs/ARCHITECTURE.md), [integrations](docs/INTEGRATIONS.md), and [privacy limitations](docs/PRIVACY.md) before adding production security engines.
+## Run locally
 
-## Run the mobile app
-
-Prerequisite: Node 22.13+.
+Node 22.13 or later is required.
 
 ~~~powershell
 npm install
-npx expo install --fix
 npm run start
 ~~~
 
-Press a from the Expo terminal to launch an Android emulator/device, or scan the displayed QR code with Expo Go on Android. The app has an offline URL-scanning workflow even if the backend is not running.
+Use an Android emulator or USB-debuggable device from the Expo terminal. The link and metadata workflows work without a backend.
 
-## Run the API
-
-The environment used to create this repository did not contain a working Python installation. On a machine with Python 3.13+:
+## Verify
 
 ~~~powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-~~~
-
-Or use a Docker daemon:
-
-~~~powershell
-docker compose up --build
-~~~
-
-The interactive OpenAPI page is available at http://localhost:8000/docs.
-
-## Test
-
-~~~powershell
-npm run test
 npm run typecheck
+npm run test
 ~~~
 
-The test suite verifies deterministic URL heuristic verdicts. More test coverage is required before a production release.
+The URL scanner test suite covers deterministic local verdicts. Device and accessibility testing remain required for a public release.
 
 ## Build an Android APK
 
-Install Android Studio, Android SDK Platform 37, and JDK 17 or newer, then:
+With JDK 17+, Android SDK Platform 37, and Android build tools installed:
 
 ~~~powershell
 npm install
-npx expo install --fix
-npx expo prebuild --platform android
+npx expo prebuild --platform android --no-install
 cd android
 .\gradlew.bat assembleRelease
 Copy-Item app\build\outputs\apk\release\app-release.apk ..\CyberShield.apk
 Get-FileHash ..\CyberShield.apk -Algorithm SHA256
 ~~~
 
-The supplied GitHub Actions workflow packages a standalone release-variant APK on main. See [Android build notes](docs/ANDROID_BUILD.md).
-
-When a verified version tag is pushed, the same workflow publishes CyberShield.apk and CyberShield.apk.sha256 in a GitHub Release. The stable asset address is:
-
-~~~text
-https://github.com/expediential/cybershield/releases/latest/download/CyberShield.apk
-~~~
+The GitHub Actions workflow builds a standalone release APK on `main`. A verified `v*` tag publishes `CyberShield.apk` and a SHA-256 checksum. Android release notes are in [docs/ANDROID_BUILD.md](docs/ANDROID_BUILD.md).
 
 ## Security and privacy
 
-- Do not put external threat-intelligence keys in the app.
-- A safe local URL verdict means only that this small, documented set of local checks did not find a high-risk signal.
-- File content is never executed by the mobile app or MVP API.
-- Deep file scans must run in an isolated worker with strict size, time, CPU, and memory limits.
-- VPN monitoring must be a separate, clearly consented native Android feature.
-
-See [Security](docs/SECURITY.md) and [Privacy](docs/PRIVACY.md).
-
-## Release state
-
-No Android SDK, SDK platform, emulator, working Python installation, repository remote, GitHub authentication, APK, release, or signing credentials were available in the supplied workspace. Therefore no APK, push, or GitHub Release is claimed. The source and CI workflow are ready for a properly provisioned build environment.
+- Do not ship reputation-provider tokens in the app.
+- Do not execute, upload, or call a metadata-only file result an antivirus scan.
+- Any future VPN monitor must be a consented native Android feature with a visible stop control.
+- Any deep file scan must run in an isolated worker with limits on size, time, CPU, and memory.
 
 ## Licence
 
-No licence was provided with the newly initialized repository. Choose and add one before publishing. Security engine licenses must be reviewed separately before integration.
+No licence is currently provided. Select one before distribution and review every future engine’s licence separately.

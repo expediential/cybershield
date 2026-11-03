@@ -27,3 +27,13 @@ export type ScanHistoryItem = {
   createdAt: string;
   detail: string;
 };
+
+export type FileAssessment = {
+  name: string;
+  bytes: number;
+  mimeType: string | null;
+  verdict: Verdict;
+  createdAt: string;
+  summary: string;
+  engine: 'metadata-only';
+};

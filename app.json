@@ -2,9 +2,9 @@
   "expo": {
     "name": "CyberShield",
     "slug": "cybershield",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.expediential.cybershield",
       "permissions": []

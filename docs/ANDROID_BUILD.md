@@ -7,7 +7,7 @@
 - Android Studio with Android SDK Platform 37
 - an Android emulator or USB-debuggable device for manual checks
 
-The workspace used for this MVP had Java 8 and no Android SDK or adb; it cannot produce a valid Android APK locally.
+If the local machine has only Java 8 or no Android SDK/adb, use the repository’s GitHub Actions workflow for a repeatable release build instead of treating a development client as a distributable APK.
 
 ## Standalone APK
 
@@ -31,4 +31,4 @@ adb install -r ..\CyberShield.apk
 
 Do not invent signing credentials. Configure a release keystore through a protected CI secret manager or Expo Application Services, then create an AAB/APK using the organization’s approved signing workflow. Generate and publish a SHA-256 file beside every downloadable APK.
 
-The repository includes a GitHub Action that produces a standalone APK artifact after a push to main. A pushed tag matching v* publishes a GitHub Release titled CyberShield Android MVP with CyberShield.apk and its SHA-256 checksum. It uses the project’s default signing configuration; configure protected release credentials before Play Store distribution.
+The repository includes a GitHub Action that produces a standalone APK artifact after a push to `main`. A pushed tag matching `v*` publishes a GitHub Release with `CyberShield.apk` and its SHA-256 checksum. It uses the project’s default signing configuration; configure protected release credentials before Play Store distribution.
