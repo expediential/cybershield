@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Easing,
   Platform,
   Pressable,
   ScrollView,
@@ -18,7 +19,7 @@ import { color, radius, space } from './src/design/tokens';
 import { scanUrl } from './src/domain/urlScanner';
 import { loadHistory, saveHistory } from './src/services/history';
 import type { Finding, ScanHistoryItem, Severity, UrlScanResult, Verdict } from './src/types/security';
-import { ModuleStatus, RadialMonitor, SeverityTag, SignalMark, Waveform, severityColor } from './src/components/Visuals';
+import { ModuleStatus, RadialMonitor, ScanRadar, SeverityTag, SignalMark, TelemetryBackdrop, Waveform, severityColor } from './src/components/Visuals';
 
 type Screen =
   | 'home'
@@ -34,6 +35,8 @@ type Screen =
   | 'onboarding';
 
 type ModuleName = 'App security' | 'Wi-Fi security' | 'Bluetooth visibility' | 'Network monitor';
+type ScanMode = 'overview' | 'url' | 'file';
+type DeviceScanPhase = 'idle' | 'scanning' | 'complete';
 
 const alertSeed = [
   { id: 'alert-1', title: 'Link needs review', description: 'A local URL assessment found a shortened link.', severity: 'warning' as Severity, time: 'Now', unread: true },
@@ -55,10 +58,13 @@ export default function App() {
   const [history, setHistory] = useState<ScanHistoryItem[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [scanMode, setScanMode] = useState<'url' | 'file'>('url');
+  const [scanMode, setScanMode] = useState<ScanMode>('overview');
   const [fileNote, setFileNote] = useState<string | null>(null);
   const [activeModule, setActiveModule] = useState<ModuleName>('App security');
+  const [deviceScanPhase, setDeviceScanPhase] = useState<DeviceScanPhase>('idle');
+  const [deviceScanProgress, setDeviceScanProgress] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
+  const screenMotion = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadHistory().then((items) => {
@@ -81,6 +87,18 @@ export default function App() {
     loop.start();
     return () => loop.stop();
   }, [isMonitoring, spin]);
+
+  useEffect(() => {
+    screenMotion.setValue(0);
+    const animation = Animated.timing(screenMotion, {
+      toValue: 1,
+      duration: 360,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [screen, screenMotion]);
 
   const score = useMemo(() => {
     const flagged = history.filter((item) => item.verdict === 'suspicious' || item.verdict === 'malicious').length;
@@ -138,6 +156,22 @@ export default function App() {
     }
   };
 
+  const startDeviceScan = () => {
+    if (deviceScanPhase === 'scanning') return;
+    setDeviceScanProgress(0);
+    setDeviceScanPhase('scanning');
+    Vibration.vibrate(10);
+    [12, 28, 47, 66, 82, 100].forEach((progress, index) => {
+      setTimeout(() => {
+        setDeviceScanProgress(progress);
+        if (progress === 100) {
+          setDeviceScanPhase('complete');
+          Vibration.vibrate([0, 10, 56, 10]);
+        }
+      }, (index + 1) * 440);
+    });
+  };
+
   const openModule = (name: ModuleName) => {
     setActiveModule(name);
     setScreen('modules');
@@ -145,23 +179,26 @@ export default function App() {
 
   const primaryScreen = ['home', 'protection', 'scan', 'activity', 'settings'].includes(screen);
   const back = () => setScreen(screen === 'monitor' ? 'protection' : screen === 'modules' ? 'protection' : screen === 'history' || screen === 'alerts' ? 'activity' : screen === 'learning' || screen === 'onboarding' ? 'settings' : 'home');
+  const screenTranslate = screenMotion.interpolate({ inputRange: [0, 1], outputRange: [10, 0] });
 
   return (
     <View style={styles.app}>
       <StatusBar style="light" />
-      {screen === 'home' && <HomeScreen score={score} history={history} onScan={() => setScreen('scan')} onNavigate={setScreen} onModule={openModule} />}
-      {screen === 'protection' && <ProtectionScreen onMonitor={() => setScreen('monitor')} onModule={openModule} />}
-      {screen === 'scan' && <ScanScreen url={url} setUrl={setUrl} urlPhase={urlPhase} result={urlResult} submitUrl={submitUrl} mode={scanMode} setMode={setScanMode} chooseFile={chooseFile} fileNote={fileNote} onHistory={() => setScreen('history')} />}
-      {screen === 'activity' && <ActivityScreen history={history} onHistory={() => setScreen('history')} onAlerts={() => setScreen('alerts')} />}
-      {screen === 'settings' && <SettingsScreen onLearning={() => setScreen('learning')} onOnboarding={() => setScreen('onboarding')} />}
-      {screen === 'monitor' && <MonitorScreen spin={spin} isMonitoring={isMonitoring} setIsMonitoring={setIsMonitoring} />}
-      {screen === 'history' && <HistoryScreen history={history} />}
-      {screen === 'alerts' && <AlertsScreen />}
-      {screen === 'learning' && <LearningScreen />}
-      {screen === 'modules' && <ModuleDetailScreen module={moduleItems.find((item) => item.name === activeModule)!} />}
-      {screen === 'onboarding' && <OnboardingScreen />}
-      {!primaryScreen && <BackHeader onBack={back} title={screen === 'modules' ? activeModule : screen === 'monitor' ? 'Real-time monitoring' : screen === 'history' ? 'Scan history' : screen === 'alerts' ? 'Alerts centre' : screen === 'learning' ? 'Security field notes' : 'Welcome to CyberShield'} />}
-      {primaryScreen && <BottomNavigation active={screen} onNavigate={setScreen} />}
+      <Animated.View style={[styles.screenTransition, { opacity: screenMotion, transform: [{ translateY: screenTranslate }] }]}>
+        {screen === 'home' && <HomeScreen score={score} history={history} onScan={() => setScreen('scan')} onNavigate={setScreen} onModule={openModule} />}
+        {screen === 'protection' && <ProtectionScreen onMonitor={() => setScreen('monitor')} onModule={openModule} />}
+        {screen === 'scan' && <ScanScreen url={url} setUrl={setUrl} urlPhase={urlPhase} result={urlResult} submitUrl={submitUrl} mode={scanMode} setMode={setScanMode} chooseFile={chooseFile} fileNote={fileNote} onHistory={() => setScreen('history')} deviceScanPhase={deviceScanPhase} deviceScanProgress={deviceScanProgress} startDeviceScan={startDeviceScan} />}
+        {screen === 'activity' && <ActivityScreen history={history} onHistory={() => setScreen('history')} onAlerts={() => setScreen('alerts')} />}
+        {screen === 'settings' && <SettingsScreen onLearning={() => setScreen('learning')} onOnboarding={() => setScreen('onboarding')} />}
+        {screen === 'monitor' && <MonitorScreen spin={spin} isMonitoring={isMonitoring} setIsMonitoring={setIsMonitoring} />}
+        {screen === 'history' && <HistoryScreen history={history} />}
+        {screen === 'alerts' && <AlertsScreen />}
+        {screen === 'learning' && <LearningScreen />}
+        {screen === 'modules' && <ModuleDetailScreen module={moduleItems.find((item) => item.name === activeModule)!} />}
+        {screen === 'onboarding' && <OnboardingScreen />}
+        {!primaryScreen && <BackHeader onBack={back} title={screen === 'modules' ? activeModule : screen === 'monitor' ? 'Real-time monitoring' : screen === 'history' ? 'Scan history' : screen === 'alerts' ? 'Alerts centre' : screen === 'learning' ? 'Security field notes' : 'Welcome to CyberShield'} />}
+        {primaryScreen && <BottomNavigation active={screen} onNavigate={setScreen} />}
+      </Animated.View>
     </View>
   );
 }
@@ -176,24 +213,24 @@ function HomeScreen({ score, history, onScan, onNavigate, onModule }: { score: n
         <Text style={styles.bell}>◌</Text>
       </View>
       <Text style={styles.eyebrow}>DEVICE PROTECTION</Text>
-      <Text style={styles.greeting}>GOOD MORNING,{'\n'}OPERATOR</Text>
-      <Text style={styles.subtle}>Your security posture is based on available local checks.</Text>
+      <Text style={styles.greeting}>SECURITY AT A GLANCE</Text>
+      <Text style={styles.subtle}>A clear view of the local checks, signals, and permissions available on this device.</Text>
 
       <View style={styles.dashboardGrid}>
         <Pressable style={[styles.gridCell, styles.activeCell]} onPress={() => onNavigate('monitor')}>
-          <View style={styles.rowBetween}><Text style={styles.cellLabel}>ACTIVE &{'\n'}MONITORING</Text><View style={styles.powerCircle}><Text style={styles.powerGlyph}>◔</Text></View></View>
+          <View style={styles.rowBetween}><Text style={styles.cellLabel} numberOfLines={2}>ACTIVE MONITORING</Text><View style={styles.powerCircle}><Text style={styles.powerGlyph}>◔</Text></View></View>
           <Text style={styles.cellFoot}>Sample mode</Text>
         </Pressable>
         <Pressable style={styles.counterCell} onPress={() => onNavigate('alerts')}>
-          <Text style={styles.counterValue}>{String(actionable).padStart(2, '0')}</Text><Text style={styles.counterText}>THREATS{'\n'}TO REVIEW</Text>
+          <Text style={styles.counterValue}>{String(actionable).padStart(2, '0')}</Text><Text style={styles.counterText} numberOfLines={2}>THREATS TO REVIEW</Text>
         </Pressable>
         <Pressable style={styles.scoreCell} onPress={() => onNavigate('activity')}>
-          <Text style={styles.scoreLabel}>SECURITY{'\n'}ASSESSMENT</Text>
+          <Text style={styles.scoreLabel} numberOfLines={2}>SECURITY ASSESSMENT</Text>
           <Text style={styles.bigScore}>{score}</Text>
           <Text style={styles.scoreCaption}>LIMITED COVERAGE</Text>
         </Pressable>
         <Pressable style={styles.counterCell} onPress={() => onNavigate('alerts')}>
-          <Text style={styles.counterValue}>02</Text><Text style={styles.counterText}>ACTIVE{'\n'}NOTICES</Text>
+          <Text style={styles.counterValue}>02</Text><Text style={styles.counterText} numberOfLines={2}>ACTIVE NOTICES</Text>
         </Pressable>
       </View>
 
@@ -237,42 +274,96 @@ function ProtectionScreen({ onMonitor, onModule }: { onMonitor: () => void; onMo
   );
 }
 
-function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, chooseFile, fileNote, onHistory }: {
-  url: string; setUrl: (value: string) => void; urlPhase: 'idle' | 'scanning' | 'complete'; result: UrlScanResult | null; submitUrl: () => void; mode: 'url' | 'file'; setMode: (mode: 'url' | 'file') => void; chooseFile: () => void; fileNote: string | null; onHistory: () => void;
+function ScanScreen({ url, setUrl, urlPhase, result, submitUrl, mode, setMode, chooseFile, fileNote, onHistory, deviceScanPhase, deviceScanProgress, startDeviceScan }: {
+  url: string; setUrl: (value: string) => void; urlPhase: 'idle' | 'scanning' | 'complete'; result: UrlScanResult | null; submitUrl: () => void; mode: ScanMode; setMode: (mode: ScanMode) => void; chooseFile: () => void; fileNote: string | null; onHistory: () => void; deviceScanPhase: DeviceScanPhase; deviceScanProgress: number; startDeviceScan: () => void;
 }) {
+  const reviewCopy = deviceScanPhase === 'scanning'
+    ? 'Reviewing the local engines, file inspector, and Android permission boundaries.'
+    : deviceScanPhase === 'complete'
+      ? 'The available coverage has been mapped. Open a module below to perform a supported check.'
+      : 'Review every security surface this build can access, then drill into a supported check.';
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <TopTitle kicker="SCAN CENTRE" title="ASSESS{'\n'}WITH CONTEXT" description="Private by default. Link structure stays on-device unless a reputation provider is configured." />
-      <View style={styles.modeToggle}>
-        <Pressable style={[styles.modeTab, mode === 'url' && styles.modeTabActive]} onPress={() => setMode('url')}><Text style={[styles.modeText, mode === 'url' && styles.modeTextActive]}>LINK / MESSAGE</Text></Pressable>
-        <Pressable style={[styles.modeTab, mode === 'file' && styles.modeTabActive]} onPress={() => setMode('file')}><Text style={[styles.modeText, mode === 'file' && styles.modeTextActive]}>FILE</Text></Pressable>
+      <TopTitle kicker="SCAN CENTRE" title="FULL SECURITY REVIEW" description="One calm place to understand your device coverage, assess links, inspect files, and open protection modules." />
+
+      <View style={styles.scanHero}>
+        <TelemetryBackdrop active={deviceScanPhase !== 'complete'} />
+        <View style={styles.scanHeroContent}>
+          <View style={styles.scanHeroTopline}><View style={styles.scanLivePill}><SignalMark severity={deviceScanPhase === 'complete' ? 'safe' : deviceScanPhase === 'scanning' ? 'warning' : 'info'} /><Text style={styles.scanLiveText}>{deviceScanPhase === 'scanning' ? 'REVIEW IN PROGRESS' : deviceScanPhase === 'complete' ? 'LOCAL REVIEW COMPLETE' : 'LOCAL-FIRST REVIEW'}</Text></View><Text style={styles.scanHeroCount}>06 SURFACES</Text></View>
+          <ScanRadar phase={deviceScanPhase} progress={deviceScanProgress} />
+          <Text style={styles.scanHeroTitle}>{deviceScanPhase === 'complete' ? 'Coverage map updated' : 'Run a device review'}</Text>
+          <Text style={styles.scanHeroCopy}>{reviewCopy}</Text>
+          <Pressable disabled={deviceScanPhase === 'scanning'} style={[styles.reviewButton, deviceScanPhase === 'scanning' && styles.buttonDisabled]} onPress={startDeviceScan}>
+            <Text style={styles.reviewButtonText}>{deviceScanPhase === 'scanning' ? `REVIEWING ${deviceScanProgress}%` : deviceScanPhase === 'complete' ? 'RUN REVIEW AGAIN' : 'RUN DEVICE REVIEW'}</Text>
+            <Text style={styles.reviewButtonGlyph}>{deviceScanPhase === 'scanning' ? '◌' : '↗'}</Text>
+          </Pressable>
+          <Text style={styles.scanBoundary}>This maps local capabilities and permissions. It does not claim a device-wide antivirus or network scan.</Text>
+        </View>
       </View>
-      {mode === 'url' ? (
-        <>
+
+      <View style={styles.scanModeBar}>
+        <Pressable style={[styles.scanMode, mode === 'overview' && styles.scanModeActive]} onPress={() => setMode('overview')}><Text style={[styles.scanModeText, mode === 'overview' && styles.scanModeTextActive]}>OVERVIEW</Text></Pressable>
+        <Pressable style={[styles.scanMode, mode === 'url' && styles.scanModeActive]} onPress={() => setMode('url')}><Text style={[styles.scanModeText, mode === 'url' && styles.scanModeTextActive]}>LINK</Text></Pressable>
+        <Pressable style={[styles.scanMode, mode === 'file' && styles.scanModeActive]} onPress={() => setMode('file')}><Text style={[styles.scanModeText, mode === 'file' && styles.scanModeTextActive]}>FILE</Text></Pressable>
+      </View>
+
+      {mode === 'overview' && <ScanOverview />}
+      {mode === 'url' && (
+        <View style={styles.scanToolPanel}>
+          <Text style={styles.toolKicker}>LINK / MESSAGE CHECK</Text>
+          <Text style={styles.toolTitle}>Assess a destination before opening it</Text>
           <View style={styles.urlInputWrap}>
             <Text style={styles.inputPrefix}>https://</Text>
-            <TextInput value={url} onChangeText={setUrl} placeholder="example.net / pasted message link" placeholderTextColor="#66736C" autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.urlInput} />
+            <TextInput value={url} onChangeText={setUrl} placeholder="example.net or pasted message link" placeholderTextColor="#66736C" autoCapitalize="none" autoCorrect={false} keyboardType="url" style={styles.urlInput} />
           </View>
           <Pressable disabled={urlPhase === 'scanning'} style={[styles.primaryButton, urlPhase === 'scanning' && styles.buttonDisabled]} onPress={submitUrl}>
             <Text style={styles.primaryButtonText}>{urlPhase === 'scanning' ? 'ANALYSING STRUCTURE…' : 'ASSESS LINK'}</Text><Text style={styles.buttonGlyph}>{urlPhase === 'scanning' ? '◌' : '↗'}</Text>
           </Pressable>
           <Text style={styles.disclaimer}>Structural analysis is performed locally. “Clear” means no high-risk local signals, not a guarantee that a site is safe.</Text>
           {result && <UrlResult result={result} />}
-        </>
-      ) : (
-        <>
+        </View>
+      )}
+      {mode === 'file' && (
+        <View style={styles.scanToolPanel}>
+          <Text style={styles.toolKicker}>FILE INSPECTOR</Text>
+          <Text style={styles.toolTitle}>Review a file without uploading it</Text>
           <View style={styles.fileDrop}>
             <Text style={styles.fileGlyph}>＋</Text><Text style={styles.fileTitle}>CHOOSE A FILE</Text><Text style={styles.fileCopy}>The file stays on this device. This build performs a metadata assessment only; a configured backend can provide isolated ClamAV and YARA scanning.</Text>
           </View>
           <Pressable style={styles.primaryButton} onPress={chooseFile}><Text style={styles.primaryButtonText}>SELECT FILE</Text><Text style={styles.buttonGlyph}>↗</Text></Pressable>
           {fileNote && <View style={styles.fileResult}><SignalMark severity={fileNote.includes('executable') ? 'warning' : 'info'} /><Text style={styles.fileResultText}>{fileNote}</Text></View>}
           <View style={styles.engineLine}><Text style={styles.engineLabel}>ENGINE STATUS</Text><Text style={styles.engineValue}>OFFLINE METADATA · BACKEND NOT CONFIGURED</Text></View>
-        </>
+        </View>
       )}
-      <Pressable style={styles.historyLink} onPress={onHistory}><Text style={styles.historyLinkTitle}>SCAN HISTORY</Text><Text style={styles.historyLinkCopy}>Review locally stored assessments</Text><Text style={styles.chevron}>›</Text></Pressable>
+      <Pressable style={styles.historyLink} onPress={onHistory}><Text style={styles.historyLinkTitle}>SCAN HISTORY</Text><Text style={styles.historyLinkCopy}>Review locally stored link and file assessments</Text><Text style={styles.chevron}>›</Text></Pressable>
       <View style={{ height: 94 }} />
     </ScrollView>
   );
+}
+
+function ScanOverview() {
+  const surfaces: { name: string; state: string; detail: string; severity: Severity }[] = [
+    { name: 'Link & message guard', state: 'READY', detail: 'On-device structural checks', severity: 'safe' },
+    { name: 'File inspector', state: 'READY', detail: 'Metadata review only', severity: 'safe' },
+    { name: 'App security', state: 'PERMISSION', detail: 'Needs native Android consent', severity: 'warning' },
+    { name: 'Wi-Fi & Bluetooth', state: 'PERMISSION', detail: 'Needs nearby-device access', severity: 'warning' },
+    { name: 'Network monitor', state: 'SAMPLE', detail: 'No VPN interception', severity: 'info' },
+    { name: 'Threat intelligence', state: 'OFFLINE', detail: 'No provider configured', severity: 'info' },
+  ];
+
+  return (
+    <View style={styles.overviewPanel}>
+      <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>PROTECTION SURFACES</Text><Text style={styles.meta}>06 MAPPED</Text></View>
+      <Text style={styles.overviewIntro}>Open a focused tool when you want to act. Statuses stay explicit so the visual layer never overstates protection.</Text>
+      <View style={styles.surfaceGrid}>{surfaces.map((surface) => <ScanSurfaceCard key={surface.name} {...surface} />)}</View>
+      <View style={styles.overviewNote}><SignalMark severity="info" /><Text style={styles.overviewNoteText}>Device-wide malware scanning, live Wi-Fi analysis, and network capture require additional native modules and explicit Android permissions.</Text></View>
+    </View>
+  );
+}
+
+function ScanSurfaceCard({ name, state, detail, severity }: { name: string; state: string; detail: string; severity: Severity }) {
+  return <View style={styles.surfaceCard}><View style={styles.surfaceCardTop}><SignalMark severity={severity} /><Text style={[styles.surfaceState, { color: severityColor(severity) }]}>{state}</Text></View><Text style={styles.surfaceName} numberOfLines={2}>{name}</Text><Text style={styles.surfaceDetail} numberOfLines={2}>{detail}</Text></View>;
 }
 
 function UrlResult({ result }: { result: UrlScanResult }) {
@@ -311,7 +402,7 @@ function MonitorScreen({ spin, isMonitoring, setIsMonitoring }: { spin: Animated
   return (
     <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: 80 }]} showsVerticalScrollIndicator={false}>
       <View style={styles.monitorHeader}><View><Text style={styles.eyebrow}>LOCAL OBSERVATORY</Text><Text style={styles.monitorTitle}>{isMonitoring ? 'MONITORING' : 'PAUSED'}</Text></View><Switch value={isMonitoring} onValueChange={setIsMonitoring} trackColor={{ false: color.surface3, true: color.accent + '99' }} thumbColor={isMonitoring ? color.text : color.muted} /></View>
-      <RadialMonitor spin={spin} />
+      <RadialMonitor spin={spin} isMonitoring={isMonitoring} />
       <View style={styles.monitorExplain}><SignalMark severity={isMonitoring ? 'safe' : 'info'} /><Text style={styles.monitorExplainText}>{isMonitoring ? 'Animated sample telemetry is running. No network traffic is captured.' : 'Enable to view illustrative events and radial activity. This does not start a VPN.'}</Text></View>
       <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>LIVE EVENT FEED</Text><Text style={styles.meta}>{isMonitoring ? 'SAMPLE' : 'PAUSED'}</Text></View>
       {isMonitoring ? <>
@@ -370,7 +461,7 @@ function SettingsScreen({ onLearning, onOnboarding }: { onLearning: () => void; 
       <SettingsRow title="Notifications" value="NO BACKGROUND ALERTS" />
       <Pressable style={styles.settingAction} onPress={onLearning}><View><Text style={styles.settingActionTitle}>Security field notes</Text><Text style={styles.settingActionCopy}>Phishing, public Wi-Fi and privacy guides</Text></View><Text style={styles.chevron}>›</Text></Pressable>
       <Pressable style={styles.settingAction} onPress={onOnboarding}><View><Text style={styles.settingActionTitle}>Review privacy promise</Text><Text style={styles.settingActionCopy}>What CyberShield can and cannot see</Text></View><Text style={styles.chevron}>›</Text></Pressable>
-      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.1.0 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
+      <View style={styles.aboutBlock}><Text style={styles.aboutWordmark}>CYBERSHIELD</Text><Text style={styles.aboutVersion}>MVP 0.2.0 · LOCAL-FIRST</Text><Text style={styles.aboutCopy}>Know your digital environment. Stay ahead of threats.</Text></View>
       <View style={{ height: 95 }} />
     </ScrollView>
   );
@@ -445,27 +536,28 @@ function SettingsRow({ title, value }: { title: string; value: string }) {
 
 const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: color.ink },
+  screenTransition: { flex: 1 },
   scrollContent: { paddingTop: Platform.select({ ios: 66, android: 44, default: 40 }), paddingHorizontal: space.md, paddingBottom: 24 },
   topStatus: { flexDirection: 'row', alignItems: 'center', minHeight: 36, marginBottom: 30 },
   brandMark: { width: 35, height: 35, backgroundColor: color.surface3, padding: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   brandDot: { width: 6, height: 6, backgroundColor: color.soft },
   connection: { marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 13, borderRightWidth: 1, borderRightColor: color.line },
-  connectionText: { color: color.muted, fontSize: 9, letterSpacing: .8, fontWeight: '700' },
+  connectionText: { color: color.muted, fontSize: 9, letterSpacing: .8, fontWeight: '700', flexShrink: 1 },
   bell: { color: color.text, fontSize: 27, marginLeft: 13, transform: [{ rotate: '180deg' }] },
   eyebrow: { color: color.accent, fontSize: 10, letterSpacing: 1.5, fontWeight: '800' },
-  greeting: { color: color.text, fontSize: 31, lineHeight: 34, letterSpacing: -1.8, fontWeight: '700', marginTop: 9 },
-  subtle: { color: color.muted, fontSize: 12, lineHeight: 18, marginTop: 8, maxWidth: 300 },
+  greeting: { color: color.text, fontSize: 28, lineHeight: 33, letterSpacing: -1.1, fontWeight: '700', marginTop: 9 },
+  subtle: { color: color.muted, fontSize: 12, lineHeight: 18, marginTop: 8, maxWidth: 330 },
   dashboardGrid: { marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', borderTopWidth: 1, borderLeftWidth: 1, borderColor: color.line },
   gridCell: { width: '50%', minHeight: 111, borderBottomWidth: 1, borderRightWidth: 1, borderColor: color.line, padding: 14 },
   activeCell: { backgroundColor: color.surface3 },
   cellLabel: { color: color.accent, fontSize: 12, fontWeight: '700', lineHeight: 16 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 },
   powerCircle: { width: 35, height: 35, borderRadius: 18, borderWidth: 1, borderColor: color.accent, alignItems: 'center', justifyContent: 'center' },
   powerGlyph: { color: color.accent, fontSize: 19 },
   cellFoot: { color: color.muted, fontSize: 10, marginTop: 19 },
-  counterCell: { width: '50%', minHeight: 111, borderBottomWidth: 1, borderRightWidth: 1, borderColor: color.line, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  counterCell: { width: '50%', minHeight: 111, borderBottomWidth: 1, borderRightWidth: 1, borderColor: color.line, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   counterValue: { color: color.accent, fontSize: 28, fontVariant: ['tabular-nums'], fontWeight: '300' },
-  counterText: { color: color.text, fontSize: 11, fontWeight: '600', lineHeight: 14 },
+  counterText: { color: color.text, fontSize: 10, fontWeight: '600', lineHeight: 14, flex: 1 },
   scoreCell: { width: '50%', minHeight: 176, borderBottomWidth: 1, borderRightWidth: 1, borderColor: color.line, padding: 14, backgroundColor: color.soft, justifyContent: 'space-between' },
   scoreLabel: { color: color.ink, fontSize: 11, lineHeight: 14, fontWeight: '800' },
   bigScore: { color: color.ink, fontSize: 68, lineHeight: 70, letterSpacing: -4, fontWeight: '800', fontVariant: ['tabular-nums'], alignSelf: 'center', marginTop: 2 },
@@ -490,8 +582,8 @@ const styles = StyleSheet.create({
   floatingScanText: { color: color.ink, fontWeight: '900', fontSize: 11, letterSpacing: .8 },
   floatingScanArrow: { color: color.ink, fontWeight: '900', fontSize: 15 },
   titleBlock: { marginBottom: 23 },
-  pageTitle: { color: color.text, fontSize: 34, lineHeight: 36, letterSpacing: -2, fontWeight: '700', marginTop: 9 },
-  pageDescription: { color: color.muted, fontSize: 12, lineHeight: 18, marginTop: 10, maxWidth: 340 },
+  pageTitle: { color: color.text, fontSize: 29, lineHeight: 34, letterSpacing: -1.1, fontWeight: '700', marginTop: 9 },
+  pageDescription: { color: color.muted, fontSize: 12, lineHeight: 18, marginTop: 10, maxWidth: 350 },
   monitorPreview: { minHeight: 128, padding: 16, backgroundColor: color.surface2, borderWidth: 1, borderColor: color.line, flexDirection: 'row', gap: 14, alignItems: 'center' },
   previewDisc: { width: 78, height: 78, borderRadius: 39, borderWidth: 5, borderLeftColor: color.accent, borderTopColor: color.accent, borderBottomColor: color.line, borderRightColor: color.line, alignItems: 'center', justifyContent: 'center' },
   previewValue: { color: color.text, fontSize: 23, fontVariant: ['tabular-nums'], fontWeight: '300' },
@@ -510,6 +602,36 @@ const styles = StyleSheet.create({
   factNumber: { color: color.warning, fontSize: 36, fontWeight: '300', fontVariant: ['tabular-nums'] },
   factText: { color: color.text, fontSize: 12, fontWeight: '600', flex: 1, lineHeight: 16 },
   factEnd: { color: color.muted, fontSize: 8, letterSpacing: .7, width: 57 },
+  scanHero: { minHeight: 474, overflow: 'hidden', backgroundColor: '#0A100D', borderWidth: 1, borderColor: '#244432', marginBottom: 18 },
+  scanHeroContent: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 16 },
+  scanHeroTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  scanLivePill: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: color.surface3 + 'E8', borderWidth: 1, borderColor: '#315342', paddingHorizontal: 9, paddingVertical: 7, borderRadius: 14 },
+  scanLiveText: { color: color.text, fontSize: 8, letterSpacing: .7, fontWeight: '800' },
+  scanHeroCount: { color: color.muted, fontSize: 9, letterSpacing: .8, fontWeight: '800' },
+  scanHeroTitle: { color: color.text, textAlign: 'center', fontSize: 18, lineHeight: 23, fontWeight: '700', marginTop: 1 },
+  scanHeroCopy: { color: color.muted, textAlign: 'center', fontSize: 11, lineHeight: 16, marginTop: 6, maxWidth: 300, alignSelf: 'center' },
+  reviewButton: { minHeight: 52, backgroundColor: color.accent, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 15 },
+  reviewButtonText: { color: color.ink, fontSize: 11, letterSpacing: .95, fontWeight: '900' },
+  reviewButtonGlyph: { color: color.ink, fontSize: 17, fontWeight: '900' },
+  scanBoundary: { color: '#91A79B', fontSize: 9, lineHeight: 13, textAlign: 'center', marginTop: 10, paddingHorizontal: 8 },
+  scanModeBar: { flexDirection: 'row', padding: 4, backgroundColor: color.surface2, borderWidth: 1, borderColor: color.line, marginBottom: 2 },
+  scanMode: { flex: 1, minHeight: 42, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  scanModeActive: { backgroundColor: color.surface3, borderBottomColor: color.accent },
+  scanModeText: { color: color.muted, fontSize: 9, letterSpacing: .6, fontWeight: '800' },
+  scanModeTextActive: { color: color.text },
+  overviewPanel: { paddingTop: 1 },
+  overviewIntro: { color: color.muted, fontSize: 11, lineHeight: 16, marginBottom: 13 },
+  surfaceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  surfaceCard: { width: '48.7%', minHeight: 118, padding: 12, backgroundColor: color.surface, borderWidth: 1, borderColor: color.line, justifyContent: 'space-between' },
+  surfaceCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  surfaceState: { fontSize: 8, fontWeight: '900', letterSpacing: .55, flexShrink: 1, textAlign: 'right' },
+  surfaceName: { color: color.text, fontSize: 12, lineHeight: 16, fontWeight: '700', marginTop: 13 },
+  surfaceDetail: { color: color.muted, fontSize: 9, lineHeight: 13, marginTop: 5 },
+  overviewNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 14, padding: 13, borderLeftWidth: 2, borderLeftColor: color.accent, backgroundColor: color.surface2 },
+  overviewNoteText: { color: color.muted, flex: 1, fontSize: 10, lineHeight: 15 },
+  scanToolPanel: { marginTop: 22 },
+  toolKicker: { color: color.accent, fontSize: 9, fontWeight: '900', letterSpacing: .9 },
+  toolTitle: { color: color.text, fontSize: 17, lineHeight: 22, fontWeight: '700', marginTop: 7, marginBottom: 13 },
   modeToggle: { flexDirection: 'row', backgroundColor: color.surface2, padding: 4, marginBottom: 14 },
   modeTab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   modeTabActive: { backgroundColor: color.surface3, borderBottomWidth: 2, borderBottomColor: color.accent },
