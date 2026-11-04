@@ -19,6 +19,10 @@ Use a standalone or development APK for these checks; Expo Go does not support t
 - Grant and deny notification permission independently; the app must keep scanning when notifications are denied.
 - Verify that no file, network traffic, installed-app inventory, or Bluetooth discovery data appears without the corresponding native adapter.
 
+## Release minification compatibility
+
+Expo SDK 58's WorkManager dependency used by `expo-background-task` needs explicit Room and `InputMerger` constructor keep rules for Android minified release builds. The `expo-build-properties` config plugin appends those rules during prebuild. Do not remove this configuration while Automatic Scan is included; it prevents a native startup crash that can occur before React Native renders.
+
 ## Standalone APK
 
 ~~~powershell

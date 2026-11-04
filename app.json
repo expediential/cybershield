@@ -2,7 +2,7 @@
   "expo": {
     "name": "CyberShield",
     "slug": "cybershield",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "android": {
@@ -18,7 +18,15 @@
       ],
       "expo-status-bar",
       "expo-background-task",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.work.InputMerger { <init>(); }"
+          }
+        }
+      ]
     ]
   }
 }

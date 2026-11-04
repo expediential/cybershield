@@ -1,6 +1,6 @@
 # CyberShield Product Capability Inventory
 
-This document is the source of truth for the product surface in the 0.5.0 build. A screen being visible does not mean its underlying Android integration is available.
+This document is the source of truth for the product surface in the 0.5.1 build. A screen being visible does not mean its underlying Android integration is available.
 
 | Module | Current implementation | Truthful user-facing state | Data boundary |
 | --- | --- | --- | --- |
