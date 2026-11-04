@@ -29,7 +29,7 @@ export function AmbientBackdrop() {
 export function BrandHeader({ label, onProfile }: { label?: string; onProfile?: () => void }) {
   const { theme, demoMode } = useTheme();
   const c = theme.colors;
-  return <View style={styles.brandHeader}><View style={styles.brandIdentity}><SignalMark size={33} /><View><Text style={[styles.wordmark, { color: c.ink }]}>CYBERSHIELD</Text><View style={styles.subline}>{label ? <Text style={[styles.brandLabel, { color: c.inkMuted }]}>{label}</Text> : null}{demoMode ? <DemoBadge /> : null}</View></View></View>{onProfile ? <Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={onProfile} style={[styles.profileButton, { borderColor: c.line }]}><View style={[styles.profileHead, { borderColor: c.signal }]} /><View style={[styles.profileBody, { backgroundColor: c.signal }]} /></Pressable> : <View style={styles.headerSpacer} />}</View>;
+  return <View style={styles.brandHeader}><View style={styles.brandIdentity}><SignalMark size={38} /><View><Text style={[styles.wordmark, { color: c.ink }]}>Cyber<Text style={{ color: c.forest }}>Shield</Text></Text><View style={styles.subline}>{label ? <Text style={[styles.brandLabel, { color: c.inkMuted }]}>{label}</Text> : null}{demoMode ? <DemoBadge /> : null}</View></View></View>{onProfile ? <Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={onProfile} style={[styles.profileButton, { borderColor: c.line, backgroundColor: c.surfaceStrong }]}><View style={[styles.profileHead, { borderColor: c.signal }]} /><View style={[styles.profileBody, { backgroundColor: c.signal }]} /><View style={[styles.notificationDot, { backgroundColor: c.forest }]} /></Pressable> : <View style={styles.headerSpacer} />}</View>;
 }
 
 export function DemoBadge() {
@@ -141,28 +141,29 @@ export function BottomNavigation({ active, onNavigate }: { active: PrimaryScreen
   const { theme, reducedMotion } = useTheme();
   const c = theme.colors;
   const indicator = useRef(new Animated.Value(['home', 'protection', 'scan', 'activity', 'profile'].indexOf(active))).current;
-  const tabs: { id: PrimaryScreen; label: string }[] = [{ id: 'home', label: 'Home' }, { id: 'protection', label: 'Protect' }, { id: 'scan', label: 'Scan' }, { id: 'activity', label: 'Activity' }, { id: 'profile', label: 'Profile' }];
+  const tabs: { id: PrimaryScreen; label: string }[] = [{ id: 'home', label: 'Home' }, { id: 'scan', label: 'Scan' }, { id: 'protection', label: 'Modules' }, { id: 'activity', label: 'Activity' }, { id: 'profile', label: 'Settings' }];
   useEffect(() => { Animated.timing(indicator, { toValue: tabs.findIndex((tab) => tab.id === active), duration: reducedMotion ? 0 : motion.quick, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }, [active, indicator, reducedMotion]);
   const navStep = Dimensions.get('window').width / tabs.length;
   const translateX = indicator.interpolate({ inputRange: [0, 4], outputRange: [0, navStep * 4] });
-  return <View style={[styles.nav, { backgroundColor: c.surface, borderTopColor: c.line }]}><Animated.View pointerEvents="none" style={[styles.navIndicator, { width: navStep, backgroundColor: c.forest, transform: [{ translateX }] }]} />{tabs.map((tab) => { const selected = tab.id === active; const glyph: ModuleId = tab.id === 'home' ? 'network' : tab.id === 'protection' ? 'apps' : tab.id === 'scan' ? 'phishing' : tab.id === 'activity' ? 'file' : 'bluetooth'; return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onNavigate(tab.id)} style={styles.navItem}><ModuleGlyph id={glyph} size={17} tone={selected ? 'active' : 'default'} /><Text style={[styles.navText, { color: selected ? c.forest : c.inkMuted }]}>{tab.label}</Text></Pressable>; })}</View>;
+  return <View style={[styles.nav, { backgroundColor: c.surface, borderTopColor: c.line }]}><Animated.View pointerEvents="none" style={[styles.navIndicator, { width: navStep, backgroundColor: c.forest, transform: [{ translateX }] }]} />{tabs.map((tab) => { const selected = tab.id === active; const glyph: ModuleId = tab.id === 'home' ? 'network' : tab.id === 'protection' ? 'apps' : tab.id === 'scan' ? 'phishing' : tab.id === 'activity' ? 'file' : 'bluetooth'; return <Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => onNavigate(tab.id)} style={[styles.navItem, selected && { backgroundColor: c.monitoringQuiet }]}><ModuleGlyph id={glyph} size={18} tone={selected ? 'active' : 'default'} /><Text style={[styles.navText, { color: selected ? c.forest : c.inkMuted }]}>{tab.label}</Text></Pressable>; })}</View>;
 }
 
 const styles = StyleSheet.create({
-  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 380, overflow: 'hidden' },
-  ambientAura: { position: 'absolute', width: 300, height: 180, borderRadius: 160, opacity: 0.09 },
+  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 460, overflow: 'hidden' },
+  ambientAura: { position: 'absolute', width: 330, height: 220, borderRadius: 180, opacity: 0.13 },
   ambientTeal: { top: -104, left: -84, transform: [{ rotate: '-16deg' }] },
   ambientLime: { top: 178, right: -162, opacity: 0.055, transform: [{ rotate: '24deg' }] },
   ambientLine: { position: 'absolute', width: 500, height: 235, borderWidth: 1, borderRadius: 250, top: -124, right: -175, opacity: 0.34, transform: [{ rotate: '18deg' }] },
   brandHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 42 },
   brandIdentity: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  wordmark: { fontFamily: type.display, fontSize: 15, letterSpacing: 1.35, fontWeight: '800' },
+  wordmark: { fontFamily: type.display, fontSize: 20, letterSpacing: -0.55, fontWeight: '800' },
   subline: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   brandLabel: { fontFamily: type.body, fontSize: 10 },
   headerSpacer: { width: 36 },
-  profileButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  profileButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   profileHead: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.4 },
   profileBody: { width: 15, height: 7, borderTopLeftRadius: 8, borderTopRightRadius: 8, marginTop: 3 },
+  notificationDot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, right: 4, top: 4 },
   demoBadge: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 5, paddingVertical: 1 },
   demoText: { fontFamily: type.mono, fontSize: 7, letterSpacing: 0.6, fontWeight: '800' },
   back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 42, alignSelf: 'flex-start' },
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   scanTrace: { borderWidth: 1, padding: 14, marginTop: space.lg }, scanTraceHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 }, scanTraceLabel: { fontFamily: type.mono, fontSize: 9, letterSpacing: 0.55 }, scanTraceValue: { fontFamily: type.mono, fontSize: 9, letterSpacing: 0.55, fontWeight: '800' },
   traceRail: { flexDirection: 'row', alignItems: 'center', marginTop: 16 }, traceStage: { flex: 1, flexDirection: 'row', alignItems: 'center' }, traceDot: { width: 11, height: 11, borderRadius: 6, borderWidth: 1 }, traceLine: { height: 1, flex: 1 }, scanTraceCopy: { fontFamily: type.body, fontSize: 11, lineHeight: 16, marginTop: 12 },
   timeline: { borderLeftWidth: 1, paddingLeft: 14, marginTop: 12 }, timelineRow: { flexDirection: 'row', gap: 12, minHeight: 104 }, timelineRail: { width: 10, alignItems: 'center', marginLeft: -20, paddingTop: 3 }, timelineStem: { width: 1, flex: 1, marginTop: 6 }, timelineBody: { flex: 1, paddingBottom: 18 }, timelineTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 }, timelineSource: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.5 }, timelineTime: { fontFamily: type.body, fontSize: 9 }, timelineTitle: { fontFamily: type.body, fontSize: 13, fontWeight: '700', marginTop: 5 }, timelineDetail: { fontFamily: type.body, fontSize: 11, lineHeight: 16, marginTop: 3 }, timelineEmpty: { padding: 17, marginLeft: 3 }, timelineEmptyText: { fontFamily: type.body, fontSize: 12, lineHeight: 18 },
-  primaryButton: { minHeight: 54, borderWidth: 1, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, primaryButtonText: { fontFamily: type.body, fontSize: 14, fontWeight: '800' },
+  primaryButton: { minHeight: 54, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, primaryButtonText: { fontFamily: type.body, fontSize: 14, fontWeight: '800' },
   arrow: { width: 20, height: 14, justifyContent: 'center' }, arrowStem: { height: 1.5, width: 17, borderRadius: 1 }, arrowHead: { position: 'absolute', right: 1, width: 7, height: 7, borderRightWidth: 1.5, borderTopWidth: 1.5, transform: [{ rotate: '45deg' }] },
-  nav: { position: 'absolute', height: 74, bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' }, navIndicator: { position: 'absolute', top: 0, left: 0, height: 2 }, navItem: { flex: 1, alignItems: 'center', gap: 4, minHeight: 54 }, navText: { fontFamily: type.body, fontSize: 9, fontWeight: '700' },
+  nav: { position: 'absolute', height: 78, bottom: 0, left: 0, right: 0, flexDirection: 'row', paddingTop: 9, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' }, navIndicator: { position: 'absolute', top: 0, left: 0, height: 2 }, navItem: { flex: 1, alignItems: 'center', gap: 4, minHeight: 58, borderRadius: 14, marginHorizontal: 2 }, navText: { fontFamily: type.body, fontSize: 9, fontWeight: '700' },
 });

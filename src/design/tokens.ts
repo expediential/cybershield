@@ -31,7 +31,7 @@ export type Theme = {
 };
 
 export const space = { xxs: 4, xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 44, xxxl: 60 } as const;
-export const radius = { sm: 7, md: 12, lg: 18, xl: 26, pill: 999 } as const;
+export const radius = { sm: 10, md: 16, lg: 22, xl: 30, pill: 999 } as const;
 export const motion = { instant: 110, quick: 180, standard: 280, deliberate: 460, scanStage: 340 } as const;
 
 export const type = {
@@ -43,28 +43,28 @@ export const type = {
 export const darkTheme: Theme = {
   mode: 'dark',
   colors: {
-    canvas: '#0A0E11',
-    surface: '#12191D',
-    surfaceMuted: '#172126',
-    surfaceStrong: '#1B252A',
-    ink: '#F1F4EF',
-    inkMuted: '#9BA9A9',
-    line: '#2A393E',
-    forest: '#C7F36B',
-    signal: '#4BD6B4',
-    signalSoft: '#123B34',
-    amber: '#F0B451',
-    amberSoft: '#3D3018',
-    danger: '#F06B69',
-    dangerSoft: '#422326',
-    white: '#F1F4EF',
-    onForest: '#0A0E11',
-    onForestMuted: '#DCEBC0',
-    onForestLine: '#55703F',
-    monitoringSurface: '#0D1719',
-    monitoringLine: '#345057',
-    monitoringMuted: '#A9C2C1',
-    monitoringQuiet: '#10272A',
+    canvas: '#02141C',
+    surface: '#07222A',
+    surfaceMuted: '#0A2A32',
+    surfaceStrong: '#0D343C',
+    ink: '#F4FBFA',
+    inkMuted: '#9AB6BA',
+    line: '#1A4D56',
+    forest: '#B9FF52',
+    signal: '#36E5D0',
+    signalSoft: '#0B3E3D',
+    amber: '#FFC857',
+    amberSoft: '#493C18',
+    danger: '#FF7370',
+    dangerSoft: '#4B292C',
+    white: '#F7FFFF',
+    onForest: '#071617',
+    onForestMuted: '#DDFDB8',
+    onForestLine: '#6AAE3B',
+    monitoringSurface: '#031923',
+    monitoringLine: '#1D6872',
+    monitoringMuted: '#A7C9CC',
+    monitoringQuiet: '#062931',
   },
 };
 
