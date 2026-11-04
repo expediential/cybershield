@@ -2,6 +2,7 @@ import * as Network from 'expo-network';
 import { inspectPickedFile } from '../domain/fileScanner';
 import { scanUrl } from '../domain/urlScanner';
 import type { ModuleId } from '../domain/capabilities';
+import { deviceSecurity } from '../native/deviceSecurity';
 import { needsAttention } from '../domain/productState';
 import type { Finding, ScanHistoryItem, Severity, Verdict } from '../types/security';
 import type { FileScanInput, ModuleScanStatus, ScanMode, ScanModuleResult, ScanProgress, ScanRun, ScanState } from '../types/scanning';
@@ -60,17 +61,20 @@ async function connectionSnapshot() {
 }
 
 const wifiModule: ScanModule = {
-  moduleId: 'wifi', displayName: 'Wi-Fi Security', requiredPermissions: ['ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE (included by expo-network)'],
+  moduleId: 'wifi', displayName: 'Wi-Fi Security', requiredPermissions: ['ACCESS_NETWORK_STATE', 'ACCESS_WIFI_STATE'],
   availability: () => ({ available: true }),
   async execute() {
     try {
-      const { state, airplaneMode, ip } = await connectionSnapshot();
+      const [{ state, airplaneMode, ip }, nativeWifi] = await Promise.all([connectionSnapshot(), deviceSecurity.wifiSnapshot().catch(() => null)]);
       const findings: Finding[] = [];
       if (airplaneMode) findings.push({ label: 'Airplane mode enabled', detail: 'Android reports airplane mode is enabled; Wi-Fi state may be unavailable or intentionally isolated.', severity: 'info' });
-      if (state.type === Network.NetworkStateType.WIFI) findings.push({ label: 'Wi-Fi connection detected', detail: ip === 'Unavailable' || ip === '0.0.0.0' ? 'Android reported Wi-Fi, but did not expose a usable IPv4 address.' : `Android exposed the local IPv4 address ${ip}.`, severity: 'safe' });
-      else findings.push({ label: 'No active Wi-Fi connection', detail: `Android reports ${String(state.type ?? 'an unknown connection type')}. This module did not inspect SSID, encryption, DNS, or nearby networks.`, severity: 'info' });
+      if (state.type === Network.NetworkStateType.WIFI) {
+        findings.push({ label: 'Wi-Fi connection detected', detail: nativeWifi?.ssid ? `Android exposed the current Wi-Fi identity as “${nativeWifi.ssid}”.` : ip === 'Unavailable' || ip === '0.0.0.0' ? 'Android reported Wi-Fi, but did not expose a usable IPv4 address.' : `Android exposed the local IPv4 address ${ip}.`, severity: 'safe' });
+        if (nativeWifi?.securityLabel === 'Open' || nativeWifi?.securityLabel === 'WEP') findings.push({ label: 'Legacy or open Wi-Fi security', detail: `Android reports ${nativeWifi.securityLabel}. Avoid sensitive sign-ins until you can verify the network.`, severity: 'warning' });
+        else if (nativeWifi?.securityLabel && nativeWifi.securityLabel !== 'Not exposed by Android') findings.push({ label: 'Wi-Fi security type reported', detail: `Android reports ${nativeWifi.securityLabel}. This does not inspect traffic, DNS, or the router configuration.`, severity: 'info' });
+      } else findings.push({ label: 'No active Wi-Fi connection', detail: `Android reports ${String(state.type ?? 'an unknown connection type')}.`, severity: 'info' });
       if (state.isConnected && state.isInternetReachable === false) findings.push({ label: 'Internet not validated', detail: 'Android sees an active connection but cannot validate Internet reachability.', severity: 'warning' });
-      return { moduleId: 'wifi', displayName: 'Wi-Fi Security', status: 'completed', summary: state.type === Network.NetworkStateType.WIFI ? 'Connected Wi-Fi state was read from Android. Encryption and SSID details are not exposed by this Expo adapter.' : 'No active Wi-Fi connection was reported by Android.', findings, recommendations: [state.type === Network.NetworkStateType.WIFI ? 'Treat public Wi-Fi as untrusted. This build cannot determine the network encryption type or inspect traffic.' : 'Connect to a trusted Wi-Fi network before running a Wi-Fi connectivity review.'], detail: `Connection type: ${String(state.type ?? 'unknown')}` };
+      return { moduleId: 'wifi', displayName: 'Wi-Fi Security', status: 'completed', summary: state.type === Network.NetworkStateType.WIFI ? 'Current Wi-Fi state and Android-exposed security information were reviewed.' : 'No active Wi-Fi connection was reported by Android.', findings, recommendations: [state.type === Network.NetworkStateType.WIFI ? 'Treat public Wi-Fi as untrusted. This module does not capture traffic, DNS content, BSSID, or gateway addresses.' : 'Connect to a trusted Wi-Fi network before running a Wi-Fi connectivity review.'], detail: `Connection type: ${String(state.type ?? 'unknown')} · ${nativeWifi?.securityLabel ?? 'Wi-Fi security type not exposed'}` };
     } catch {
       return empty('wifi', 'Wi-Fi Security', 'failed', 'Android did not provide a network-state response.', ['Check device connectivity and try again.']);
     }
@@ -97,18 +101,30 @@ const networkModule: ScanModule = {
 };
 
 const appModule: ScanModule = {
-  moduleId: 'apps', displayName: 'Application Security', requiredPermissions: ['Android PackageManager adapter'],
-  availability: () => ({ available: false, reason: 'This release does not bundle an Android PackageManager bridge. It cannot inventory installed apps or their permissions.' }),
+  moduleId: 'apps', displayName: 'Application Security', requiredPermissions: ['Android launcher-app visibility'],
+  availability: () => deviceSecurity.isAvailable() ? { available: true } : { available: false, reason: 'The installed build does not include the CyberShield Android diagnostics module. Install the latest APK and try again.' },
   async execute() {
-    return empty('apps', 'Application Security', 'skipped', 'Installed-app auditing is unavailable because no PackageManager bridge is bundled.', ['Do not infer installed-app risk from this release. A future adapter must follow Android package visibility rules.']);
+    if (!deviceSecurity.isAvailable()) return empty('apps', 'Application Security', 'skipped', 'The Android diagnostics module is unavailable in this installed build.', ['Install the current CyberShield APK, then run the app audit again.']);
+    const audit = await deviceSecurity.auditApplications();
+    const reviewApps = audit.apps.filter((app) => app.reviewSignals.length > 0);
+    const findings: Finding[] = [{ label: 'Launcher-app audit completed', detail: `${audit.visibleAppCount} launchable app${audit.visibleAppCount === 1 ? '' : 's'} were visible to Android. The audit does not request broad QUERY_ALL_PACKAGES access.`, severity: 'safe' }];
+    reviewApps.slice(0, 4).forEach((app) => findings.push({ label: `${app.label} needs review`, detail: app.reviewSignals.join(' · '), severity: 'warning' }));
+    return { moduleId: 'apps', displayName: 'Application Security', status: 'completed', summary: `Audited ${audit.visibleAppCount} launchable app${audit.visibleAppCount === 1 ? '' : 's'} and their declared sensitive-permission signals.`, findings, recommendations: reviewApps.length ? ['Review the flagged app in Android Settings. A declared permission or debuggable flag is context, not a malware verdict.'] : ['No elevated review signals were found in the launchable-app set. This is not a malware scan.'], detail: audit.privacyNote };
   },
 };
 
 const bluetoothModule: ScanModule = {
-  moduleId: 'bluetooth', displayName: 'Bluetooth Security', requiredPermissions: ['BLUETOOTH_SCAN / BLUETOOTH_CONNECT adapter'],
-  availability: () => ({ available: false, reason: 'This release does not bundle an Android Bluetooth discovery adapter.' }),
+  moduleId: 'bluetooth', displayName: 'Bluetooth Security', requiredPermissions: ['BLUETOOTH_CONNECT / Nearby devices'],
+  availability: () => deviceSecurity.isAvailable() ? { available: true } : { available: false, reason: 'The installed build does not include the CyberShield Android diagnostics module. Install the latest APK and try again.' },
   async execute() {
-    return empty('bluetooth', 'Bluetooth Security', 'skipped', 'Bluetooth discovery is unavailable because no Android Bluetooth adapter is bundled.', ['Do not infer nearby-device visibility from this release.']);
+    if (!deviceSecurity.isAvailable()) return empty('bluetooth', 'Bluetooth Security', 'skipped', 'The Android diagnostics module is unavailable in this installed build.', ['Install the current CyberShield APK, then run the paired-device audit again.']);
+    const permission = await deviceSecurity.requestBluetoothAccess();
+    const snapshot = await deviceSecurity.bluetoothSnapshot();
+    if (!permission.granted || !snapshot.permissionGranted) return empty('bluetooth', 'Bluetooth Security', 'permission-required', snapshot.reason ?? 'Nearby devices permission was not granted.', ['Allow Nearby devices access to review paired Bluetooth-device names and connection types. CyberShield does not run nearby-device discovery.']);
+    const findings: Finding[] = [];
+    if (!snapshot.enabled) findings.push({ label: 'Bluetooth disabled', detail: 'Android reports Bluetooth is currently off, so paired-device state cannot be actively used.', severity: 'info' });
+    else findings.push({ label: 'Paired-device audit completed', detail: `${snapshot.pairedDeviceCount ?? snapshot.pairedDevices.length} paired device${(snapshot.pairedDeviceCount ?? snapshot.pairedDevices.length) === 1 ? '' : 's'} are configured on this phone. Device addresses and nearby scan results were not collected.`, severity: 'safe' });
+    return { moduleId: 'bluetooth', displayName: 'Bluetooth Security', status: 'completed', summary: snapshot.enabled ? `Reviewed ${snapshot.pairedDeviceCount ?? snapshot.pairedDevices.length} paired Bluetooth device${(snapshot.pairedDeviceCount ?? snapshot.pairedDevices.length) === 1 ? '' : 's'}.` : 'Bluetooth is disabled; no paired-device communication is active.', findings, recommendations: [snapshot.enabled ? 'Remove pairings you no longer recognize in Android Bluetooth settings. A device name alone is not a threat verdict.' : 'Enable Bluetooth only when you need it, then review the paired-device list again.'], detail: snapshot.privacyNote ?? 'Paired-device audit completed.' };
   },
 };
 

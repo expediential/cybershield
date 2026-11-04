@@ -6,7 +6,8 @@ const fixedTime = new Date('2026-11-02T08:00:00.000Z');
 const ordinary = scanUrl('https://www.example.com/account', fixedTime);
 assert.equal(ordinary.verdict, 'safe');
 assert.equal(ordinary.score, 0);
-assert.match(ordinary.coverage, /Structural analysis only/);
+assert.match(ordinary.coverage, /Local structural analysis/);
+assert.match(ordinary.coverage, /public-suffix domain parsing/);
 
 const shortened = scanUrl('bit.ly/3example', fixedTime);
 assert.equal(shortened.verdict, 'suspicious');
@@ -33,4 +34,8 @@ const lookalike = scanUrl('https://paypal-login.accounts.example/verify', fixedT
 assert.equal(lookalike.verdict, 'suspicious');
 assert.ok(lookalike.findings.some((finding) => finding.label === 'Look-alike brand placement'));
 
-console.log('urlScanner: 16 assertions passed');
+const multiPartSuffix = scanUrl('https://paypal.signin.example.co.uk/verify', fixedTime);
+assert.equal(multiPartSuffix.verdict, 'suspicious');
+assert.ok(multiPartSuffix.findings.some((finding) => finding.label === 'Look-alike brand placement'));
+
+console.log('urlScanner: 20 assertions passed');

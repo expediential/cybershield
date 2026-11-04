@@ -16,11 +16,11 @@ The assessment is not antivirus, YARA, sandboxing, or a malware-clean declaratio
 
 ### Wi-Fi and Network Security
 
-The app reads Android-reported connection type, connected/reachable state, airplane mode, and a local IPv4 address when the platform exposes it. It does not read SSIDs, encryption, passwords, DNS payloads, packets, traffic contents, or TLS content. It does not establish a VPN.
+The app reads Android-reported connection type, connected/reachable state, airplane mode, and a local IPv4 address when the platform exposes it. The local Android module may also show the current SSID and Wi-Fi security type when Android exposes those details. It does not read passwords, DNS payloads, packets, traffic contents, or TLS content. It does not establish a VPN.
 
-## Deliberately unavailable modules
+## Permission-scoped device modules
 
-Installed-app auditing and Bluetooth discovery require dedicated Android-native adapters and version-specific permissions. These modules report unavailable/skipped in the shared scan engine. Demo Mode remains visibly labelled and never becomes security history, posture, alerts, or analytics.
+Application Security uses launcher-only package visibility to review declared sensitive permissions and a small set of explainable review signals. It does not request `QUERY_ALL_PACKAGES`, claim to identify malware, or upload the inventory. Bluetooth Security asks for Android Nearby devices permission only when the user starts the audit, then reads paired-device names and connection types. It does not perform nearby discovery or collect device addresses. Demo Mode remains visibly labelled and never becomes security history, posture, alerts, or analytics.
 
 ## Automatic Scan and notifications
 

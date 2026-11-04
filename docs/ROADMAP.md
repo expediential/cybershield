@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered in 0.5.1
+## Delivered in 0.6.0
 
 - [x] Sentinel dark-first visual system with a deliberately designed light mode
 - [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols
@@ -15,12 +15,13 @@
 - [x] Local SHA-256 and file-header inspection for user-selected files where Android exposes a stream
 - [x] Optional Android finding notifications for changed automatic URL findings
 - [x] Limited Android connection-state checks with explicit no-traffic-capture boundary
+- [x] Launcher-only PackageManager audit for declared sensitive-permission and review signals
+- [x] Just-in-time Bluetooth paired-device audit with Android Nearby devices permission
+- [x] Local public-suffix parsing for registrable-domain link checks
 
 ## Next implementation milestones
 
-- [ ] Kotlin PackageManager bridge with package visibility policy and permission audit tests
 - [ ] Android Wi-Fi/connectivity bridge with API-level behaviour matrix
-- [ ] Android nearby-device / Bluetooth adapter with just-in-time permission flow
 - [ ] Threat-modelled, consented Kotlin VpnService with persistent stop control
 - [ ] Opt-in remote URL reputation adapter with backend-only API keys and provider disclosure
 - [ ] Isolated queued ClamAV/YARA file worker with upload consent and result signatures

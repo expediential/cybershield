@@ -1,6 +1,10 @@
 # Open-source attribution and integration review
 
-CyberShield does not copy, bundle, or link the projects in the candidate table below. The current Android build uses only Expo packages declared in `package.json`; their licenses are resolved through the npm dependency tree and must remain part of release compliance review.
+CyberShield does not copy, bundle, or link the candidate projects in the table below. The current Android build uses Expo packages plus `tldts`, declared in `package.json`; their licenses are resolved through the npm dependency tree and must remain part of release compliance review.
+
+| Integrated dependency | Purpose | License | Data boundary |
+| --- | --- | --- | --- |
+| `tldts` 7.4.19 | Local public-suffix parsing for registrable-domain link checks | MIT | Runs on device; no URL is sent to a service |
 
 | Candidate | Repository | License reviewed | Decision in this release | If adopted later |
 | --- | --- | --- | --- | --- |
@@ -12,6 +16,6 @@ CyberShield does not copy, bundle, or link the projects in the candidate table b
 
 ## Review record
 
-The technical review concluded that ClamAV, YARA, Magika, and MobSF are not responsible direct React Native/Expo mobile-client dependencies for this phase. They either require native/server runtimes, carry copyleft obligations, are designed as analysis platforms, or need separate privacy and operational controls. No source code, signatures, models, or feeds from these projects are included in CyberShield 0.5.1.
+The technical review concluded that ClamAV, YARA, Magika, and MobSF are not responsible direct React Native/Expo mobile-client dependencies for this phase. They either require native/server runtimes, carry copyleft obligations, are designed as analysis platforms, or need separate privacy and operational controls. No source code, signatures, models, or feeds from these candidate projects are included in CyberShield 0.6.0.
 
 License and maintenance must be rechecked against a pinned version immediately before any integration. This document is an engineering record, not legal advice.

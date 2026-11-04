@@ -42,7 +42,7 @@ function CyberShieldApp() {
   const navigate = useCallback((next: Screen) => setScreen(next), []);
   const openScan = (module: ModuleId = 'phishing') => { setScanRequest(module); navigate('scan'); };
   const openModule = (capability: Capability) => {
-    if (capability.id === 'phishing' || capability.id === 'file' || capability.id === 'wifi' || capability.id === 'network') return openScan(capability.id);
+    if (capability.id === 'phishing' || capability.id === 'file') return openScan(capability.id);
     navigate(capability.id);
   };
   const saveManualRun = (run: ScanRun, items: ScanHistoryItem[]) => {

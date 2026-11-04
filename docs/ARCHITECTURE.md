@@ -19,8 +19,8 @@ src/scanning/ScanManager.ts
        ├─ File Security           user-selected file metadata, header, SHA-256
        ├─ Wi-Fi Security          Android-reported connection state
        ├─ Network Security        Android-reported connectivity metadata
-       ├─ App Security            explicitly skipped: no PackageManager bridge
-       └─ Bluetooth Security      explicitly skipped: no Bluetooth bridge
+       ├─ App Security            launchable-app metadata and declared-permission audit
+       └─ Bluetooth Security      user-approved paired-device metadata audit
 
 src/scanning/ScanScheduler.ts
   ├─ Expo Background Task → Android WorkManager
@@ -42,7 +42,8 @@ Manual Scan can select any module and accepts input only when the module needs i
 - URL Security accepts a user-supplied HTTP/S URL and never opens it.
 - File Security accepts only a file explicitly selected through Android’s system picker.
 - Wi-Fi and Network Security query supported Android connection-state APIs.
-- App Security and Bluetooth Security remain skipped until dedicated Kotlin bridges exist.
+- App Security uses a narrow Kotlin PackageManager bridge and launcher-only Android package visibility.
+- Bluetooth Security requests Android Nearby devices access only when the user starts a paired-device audit.
 
 The UI may cancel a run between modules. Any completed results are retained and the run is marked `cancelled`.
 
@@ -70,13 +71,13 @@ All stores use app-local AsyncStorage. No file content, API keys, network payloa
 
 ## Android-native boundaries
 
-Expo modules provide the currently implemented platform access: `expo-file-system`, `expo-network`, `expo-battery`, `expo-background-task`, `expo-task-manager`, and `expo-notifications`. Background Tasks and notification behavior require a standalone or development Android build; Expo Go is not a supported background-task runtime.
+Expo modules provide the currently implemented platform access: `expo-file-system`, `expo-network`, `expo-battery`, `expo-background-task`, `expo-task-manager`, `expo-notifications`, and the local `cybershield-device-security` Kotlin module. Background Tasks and notification behavior require a standalone or development Android build; Expo Go is not a supported background-task runtime.
 
-The following require a separately designed and audited Kotlin module before any device claim can be made:
+The following remain outside this release and require separately designed and audited platform work before any device claim can be made:
 
-- `PackageManager` visibility and requested-permission audit;
-- Wi-Fi SSID, encryption, DNS, gateway, and nearby-scan details;
-- Bluetooth discovery/bonded-device access;
+- broad `PackageManager` visibility beyond user-facing launcher activities;
+- Wi-Fi DNS, gateway, and nearby-scan details;
+- Bluetooth discovery or device-address collection;
 - an explicit-consent `VpnService` for metadata-only flow monitoring.
 
 ## Future backend adapters

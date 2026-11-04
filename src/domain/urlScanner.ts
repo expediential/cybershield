@@ -1,4 +1,5 @@
 import type { Finding, UrlScanResult, Verdict } from '../types/security';
+import { parse } from 'tldts';
 
 const shorteners = new Set(['bit.ly', 't.co', 'tinyurl.com', 'goo.gl', 'is.gd', 'rb.gy', 'cutt.ly', 'rebrand.ly', 'shorturl.at']);
 const testBlocklist = new Set(['malware.test', 'phishing.test', 'unsafe.example']);
@@ -63,8 +64,11 @@ export function scanUrl(input: string, now = new Date()): UrlScanResult {
     apply(16, finding('Redirect parameter', 'The address contains a destination parameter. The final page may differ from the visible domain.', 'warning'));
   }
   const labels = host.split('.');
+  // tldts bundles the public suffix list, so a registrable-domain comparison
+  // remains local and works correctly for multi-part suffixes such as co.uk.
+  const parsedHost = parse(host, { allowPrivateDomains: false });
   const brandLabel = labels.find((label) => brandWords.includes(label.replace(/[^a-z]/g, '')) || brandWords.some((brand) => label.includes(brand)));
-  const registeredArea = labels.slice(-2).join('.');
+  const registeredArea = parsedHost.domain ?? labels.slice(-2).join('.');
   if (brandLabel && !registeredArea.includes(brandLabel.replace(/[^a-z]/g, '')) && (labels.length > 2 || host.includes('-'))) {
     apply(22, finding('Look-alike brand placement', `The hostname includes “${brandLabel}” outside its apparent registrable domain. Legitimate brands can use subdomains, so verify independently.`, 'warning'));
   }
@@ -98,7 +102,7 @@ export function scanUrl(input: string, now = new Date()): UrlScanResult {
     score,
     findings,
     checkedAt: now.toISOString(),
-    coverage: testBlocklist.has(host) ? 'Local test blocklist + structural analysis' : 'Structural analysis only — reputation lookup is not configured',
+    coverage: testBlocklist.has(host) ? 'Local test blocklist + structural analysis' : 'Local structural analysis + public-suffix domain parsing — reputation lookup is not configured',
     recommendation,
   };
 }
