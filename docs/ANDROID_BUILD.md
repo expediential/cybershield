@@ -9,6 +9,16 @@
 
 If the local machine has only Java 8 or no Android SDK/adb, use the repository’s GitHub Actions workflow for a repeatable release build instead of treating a development client as a distributable APK.
 
+## Phase 2 device checks
+
+Use a standalone or development APK for these checks; Expo Go does not support the Background Task runtime used by Automatic Scan.
+
+- Run a manual link check, a selected-file check, Wi-Fi state check, and network state check.
+- Confirm a full scan marks a missing URL/file and unbundled app/Bluetooth adapters as skipped rather than clean.
+- Enable Automatic Scan and confirm the app explains that WorkManager uses a minimum interval rather than an exact preferred time.
+- Grant and deny notification permission independently; the app must keep scanning when notifications are denied.
+- Verify that no file, network traffic, installed-app inventory, or Bluetooth discovery data appears without the corresponding native adapter.
+
 ## Standalone APK
 
 ~~~powershell

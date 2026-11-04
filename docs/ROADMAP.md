@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered in 0.4.0
+## Delivered in 0.5.0
 
 - [x] Sentinel dark-first visual system with a deliberately designed light mode
 - [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols
@@ -10,6 +10,11 @@
 - [x] Reduced Motion preference and Android hardware-back handling
 - [x] Deterministic URL scanner and product-state tests
 - [x] Standalone Android APK CI/release workflow
+- [x] Shared manual scan orchestration with outcome-derived progress and partial completion
+- [x] Optional WorkManager-backed automatic URL, Wi-Fi-state, and network-state checks
+- [x] Local SHA-256 and file-header inspection for user-selected files where Android exposes a stream
+- [x] Optional Android finding notifications for changed automatic URL findings
+- [x] Limited Android connection-state checks with explicit no-traffic-capture boundary
 
 ## Next implementation milestones
 
@@ -19,7 +24,6 @@
 - [ ] Threat-modelled, consented Kotlin VpnService with persistent stop control
 - [ ] Opt-in remote URL reputation adapter with backend-only API keys and provider disclosure
 - [ ] Isolated queued ClamAV/YARA file worker with upload consent and result signatures
-- [ ] Android notification channel for real local alerts
 - [ ] Physical-device accessibility, layout, and integration test matrix
 
 ## Release gate

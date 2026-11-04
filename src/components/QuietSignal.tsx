@@ -10,6 +10,22 @@ import type { Severity, Verdict } from '../types/security';
 type EventSignal = { id: string; title: string; detail: string; severity: Severity; time: string; source: string };
 type ScanPhase = 'idle' | 'preparing' | 'analyzing' | 'complete' | 'error';
 
+/** Lightweight animated depth used behind premium surfaces; it is disabled by Reduce Motion. */
+export function AmbientBackdrop() {
+  const { theme, reducedMotion } = useTheme();
+  const c = theme.colors;
+  const drift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion) { drift.stopAnimation(); drift.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([Animated.timing(drift, { toValue: 1, duration: 11000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }), Animated.timing(drift, { toValue: 0, duration: 11000, easing: Easing.inOut(Easing.sin), useNativeDriver: true })]));
+    loop.start();
+    return () => loop.stop();
+  }, [drift, reducedMotion]);
+  const left = drift.interpolate({ inputRange: [0, 1], outputRange: [-24, 24] });
+  const right = drift.interpolate({ inputRange: [0, 1], outputRange: [18, -22] });
+  return <View pointerEvents="none" style={styles.ambient}><Animated.View style={[styles.ambientAura, styles.ambientTeal, { backgroundColor: c.signal, transform: [{ translateX: left }] }]} /><Animated.View style={[styles.ambientAura, styles.ambientLime, { backgroundColor: c.forest, transform: [{ translateX: right }] }]} /><View style={[styles.ambientLine, { borderColor: c.monitoringLine }]} /></View>;
+}
+
 export function BrandHeader({ label, onProfile }: { label?: string; onProfile?: () => void }) {
   const { theme, demoMode } = useTheme();
   const c = theme.colors;
@@ -114,7 +130,7 @@ export function SecurityTimeline({ events, emptyCopy = 'No security events have 
 export function PrimaryButton({ label, onPress, disabled = false, quiet = false }: { label: string; onPress: () => void; disabled?: boolean; quiet?: boolean }) {
   const { theme } = useTheme();
   const c = theme.colors;
-  return <Pressable disabled={disabled} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.primaryButton, { backgroundColor: quiet ? c.surfaceStrong : c.forest, borderColor: quiet ? c.line : c.forest, opacity: disabled ? 0.45 : pressed ? 0.82 : 1 }]}><Text style={[styles.primaryButtonText, { color: quiet ? c.ink : c.onForest }]}>{label}</Text><ArrowIcon color={quiet ? c.ink : c.onForest} /></Pressable>;
+  return <Pressable disabled={disabled} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.primaryButton, { backgroundColor: quiet ? c.surfaceStrong : c.forest, borderColor: quiet ? c.line : c.forest, opacity: disabled ? 0.45 : pressed ? 0.82 : 1, transform: [{ scale: pressed && !disabled ? 0.98 : 1 }] }]}><Text style={[styles.primaryButtonText, { color: quiet ? c.ink : c.onForest }]}>{label}</Text><ArrowIcon color={quiet ? c.ink : c.onForest} /></Pressable>;
 }
 
 export function ArrowIcon({ color, back = false }: { color: string; back?: boolean }) {
@@ -133,6 +149,11 @@ export function BottomNavigation({ active, onNavigate }: { active: PrimaryScreen
 }
 
 const styles = StyleSheet.create({
+  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 380, overflow: 'hidden' },
+  ambientAura: { position: 'absolute', width: 300, height: 180, borderRadius: 160, opacity: 0.09 },
+  ambientTeal: { top: -104, left: -84, transform: [{ rotate: '-16deg' }] },
+  ambientLime: { top: 178, right: -162, opacity: 0.055, transform: [{ rotate: '24deg' }] },
+  ambientLine: { position: 'absolute', width: 500, height: 235, borderWidth: 1, borderRadius: 250, top: -124, right: -175, opacity: 0.34, transform: [{ rotate: '18deg' }] },
   brandHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 42 },
   brandIdentity: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   wordmark: { fontFamily: type.display, fontSize: 15, letterSpacing: 1.35, fontWeight: '800' },

@@ -28,7 +28,7 @@ export type ScanHistoryItem = {
   detail: string;
   read?: boolean;
   dismissed?: boolean;
-  source?: 'local-heuristics' | 'metadata-only';
+  source?: 'local-heuristics' | 'metadata-only' | 'metadata-and-fingerprint';
 };
 
 export type FileAssessment = {
@@ -38,5 +38,11 @@ export type FileAssessment = {
   verdict: Verdict;
   createdAt: string;
   summary: string;
-  engine: 'metadata-only';
+  engine: 'metadata-and-fingerprint';
+  findings: Finding[];
+  recommendation: string;
+  extension: string;
+  signature: string | null;
+  sha256: string | null;
+  fingerprintStatus: 'computed' | 'unavailable';
 };

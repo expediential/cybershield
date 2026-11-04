@@ -1,0 +1,25 @@
+import type { FileScanInput } from '../types/scanning';
+import type { FileAssessment, Finding, Verdict } from '../types/security';
+
+export type FileEvidence = { sha256: string | null; signature: string | null; fingerprintStatus: 'computed' | 'unavailable' };
+const riskyExtensions = new Set(['apk', 'aab', 'exe', 'msi', 'bat', 'cmd', 'scr', 'com', 'js', 'jse', 'vbs', 'vbe', 'ps1', 'jar']);
+const extensionMime: Record<string, RegExp> = { pdf: /^application\/pdf$/i, png: /^image\/png$/i, jpg: /^image\/jpeg$/i, jpeg: /^image\/jpeg$/i, gif: /^image\/gif$/i, zip: /^(application\/zip|application\/x-zip-compressed)$/i, apk: /^application\/vnd\.android\.package-archive$/i, txt: /^text\/plain$/i };
+
+export function extensionFor(name: string) { const match = /\.([a-z0-9]+)$/i.exec(name.trim()); return match?.[1]?.toLowerCase() ?? ''; }
+export function signatureFor(bytes: Uint8Array): string | null { const hex = Array.from(bytes.slice(0, 8)).map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase(); if (hex.startsWith('4D5A')) return 'Windows executable (MZ)'; if (hex.startsWith('504B0304') || hex.startsWith('504B0506') || hex.startsWith('504B0708')) return 'ZIP container'; if (hex.startsWith('25504446')) return 'PDF document'; if (hex.startsWith('89504E470D0A1A0A')) return 'PNG image'; if (hex.startsWith('FFD8FF')) return 'JPEG image'; if (hex.startsWith('7F454C46')) return 'ELF executable'; return hex ? `Unrecognized header (${hex.slice(0, 12)})` : null; }
+
+export function assessFile(input: Omit<FileScanInput, 'uri'>, evidence: FileEvidence, now = new Date()): FileAssessment {
+  const extension = extensionFor(input.name); const findings: Finding[] = []; let risk = 0;
+  const add = (label: string, detail: string, severity: Finding['severity']) => findings.push({ label, detail, severity }); const apply = (points: number, label: string, detail: string, severity: Finding['severity']) => { risk += points; add(label, detail, severity); };
+  if (!extension) add('No filename extension', 'Android did not provide a filename extension, so type-based checks are limited.', 'info');
+  if (riskyExtensions.has(extension)) apply(28, 'Executable or installer type', `.${extension} files can install or run code. This does not establish that this file is malicious.`, 'warning');
+  if (/\.(pdf|docx?|xlsx?|png|jpe?g)\.(apk|exe|msi|bat|cmd|scr|js|vbs)$/i.test(input.name)) apply(38, 'Double-extension filename', 'The name appears to disguise an executable or installer as a document or image.', 'danger');
+  if (input.mimeType && extensionMime[extension] && !extensionMime[extension].test(input.mimeType)) apply(20, 'Type mismatch', `The filename suggests .${extension}, but Android reported ${input.mimeType}.`, 'warning');
+  if (input.bytes > 500 * 1024 * 1024) add('Large file', 'Large files take longer to fingerprint and should be verified before being shared or installed.', 'info');
+  if (input.bytes === 0) add('Size not reported', 'Android did not supply a usable file size.', 'info');
+  if (evidence.signature?.includes('Windows executable') || evidence.signature?.includes('ELF executable')) apply(32, 'Executable file header', `${evidence.signature} was detected from the file header. Android will not execute this file during the inspection.`, 'danger');
+  if (evidence.signature === 'ZIP container' && extension && !['zip', 'apk', 'jar', 'docx', 'xlsx', 'pptx'].includes(extension)) add('Container header', 'The file begins with a ZIP-compatible container header. This can be normal for modern documents and application packages.', 'info');
+  if (evidence.fingerprintStatus === 'computed') add('SHA-256 fingerprint', 'A local cryptographic fingerprint was calculated. No file content was uploaded for this check.', 'safe'); else add('Fingerprint unavailable', 'Android did not expose a readable stream for this selected file, so a SHA-256 fingerprint could not be calculated.', 'info');
+  const verdict: Verdict = risk >= 45 ? 'malicious' : risk >= 20 ? 'suspicious' : 'unknown'; const summary = verdict === 'malicious' ? 'The locally visible file signals require caution. Do not install or execute this file until its publisher and SHA-256 are independently verified.' : verdict === 'suspicious' ? 'The file has locally visible risk indicators. This is not an antivirus verdict.' : 'No high-risk local metadata signal was found. This is not a malware-clean result.'; const recommendation = verdict === 'malicious' || verdict === 'suspicious' ? 'Do not open, install, or forward the file until you verify the source and fingerprint through a trusted channel.' : 'Verify the sender and compare the SHA-256 only with a fingerprint supplied by a trusted publisher.';
+  return { name: input.name, bytes: input.bytes, mimeType: input.mimeType, verdict, createdAt: now.toISOString(), summary, engine: 'metadata-and-fingerprint', findings, recommendation, extension: extension || 'none', signature: evidence.signature, sha256: evidence.sha256, fingerprintStatus: evidence.fingerprintStatus };
+}

@@ -1,28 +1,15 @@
 # Privacy
 
-CyberShield aims to minimize data exposure.
+CyberShield is local-first in this release.
 
-## Current mobile behavior
+- URL analysis is performed on-device and does not fetch the entered address.
+- A selected file remains on device. CyberShield never uploads or executes it. If readable through Android’s picker grant, the app computes a SHA-256 fingerprint locally.
+- Saved history contains link addresses or file names, verdicts, timestamps, and assessment summaries. It does not contain file bytes, passwords, browser cookies, packet content, or message contents.
+- Automatic Scan rechecks only saved URLs and Android connection-state metadata. It never selects a file, scans storage, or captures network traffic.
+- Notification permission is requested only when the user enables finding notifications while saving Automatic Scan settings.
+- Theme, reduced-motion, Demo Mode, automatic-scan settings, history, and scan-run records are stored in app-local AsyncStorage. Clear app data to remove them; a dedicated scan-history clear control removes assessment history.
+- Demo Mode uses in-memory records only and never enters real history, alerts, analytics, or the security posture.
 
-- URL structure analysis runs on-device.
-- Scan history is retained locally through unencrypted app storage. It contains no credentials and is not suitable for secrets.
-- The saved light/dark appearance preference is retained locally through the same app storage.
-- Reduced Motion and Demo Mode preferences are retained locally through the same app storage.
-- Demo Mode records stay in memory only. They are not written to local history, alerts, analytics, or posture state.
-- No analytics SDK is included.
-- No account system, password collection, VPN capture, Bluetooth scan, Wi-Fi read, installed-app inventory, or external URL reputation lookup is enabled in the MVP.
-- File selection uses the operating-system picker. The MVP derives a local metadata result and does not upload the file.
+No analytics SDK, account system, external URL-reputation API, external hash-reputation API, VPN service, Bluetooth scanner, or installed-app inventory is enabled in this release.
 
-## If a backend is enabled
-
-The sample API accepts a URL or a bounded file upload. Production use needs a privacy notice that specifies retention, processing region, deletion procedure, security contacts, third-party threat-intelligence sharing, and the legal basis for processing.
-
-Never send page credentials, browser cookies, content from private messages, or installed-app lists to a third party by default.
-
-## User controls planned
-
-- clear local scan history or choose encrypted storage
-- enable/disable each monitoring category
-- notification preferences
-- data-export and deletion controls
-- visible backend and third-party provider status
+Before connecting a backend, CyberShield needs a user-facing privacy notice for retention, processing region, service providers, deletion, incident contact, and any threat-intelligence sharing. Never transmit a private file or installed-app inventory by default.

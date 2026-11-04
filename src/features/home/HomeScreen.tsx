@@ -1,13 +1,16 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { BrandHeader, ModuleGlyph, PrimaryButton, SentinelCore, StatusDot, ThreatConstellation, VerdictPill } from '../../components/QuietSignal';
+import { AmbientBackdrop, BrandHeader, ModuleGlyph, PrimaryButton, SentinelCore, StatusDot, ThreatConstellation, VerdictPill } from '../../components/QuietSignal';
 import { capabilities, type Capability } from '../../domain/capabilities';
 import { derivePosture, needsAttention } from '../../domain/productState';
 import { radius, space, type } from '../../design/tokens';
 import { useTheme } from '../../core/ThemeProvider';
 import type { ScanHistoryItem } from '../../types/security';
+import type { AutomaticScanSettings, ScanRun } from '../../types/scanning';
 
 type Props = {
   history: ScanHistoryItem[];
+  scanRuns: ScanRun[];
+  automaticScan: AutomaticScanSettings | null;
   onScan: () => void;
   onFileScan: () => void;
   onProtection: () => void;
@@ -17,22 +20,27 @@ type Props = {
   onCapability: (capability: Capability) => void;
 };
 
-export function HomeScreen({ history, onScan, onFileScan, onProtection, onActivity, onProfile, onAlerts, onCapability }: Props) {
+export function HomeScreen({ history, scanRuns, automaticScan, onScan, onFileScan, onProtection, onActivity, onProfile, onAlerts, onCapability }: Props) {
   const { theme } = useTheme();
   const c = theme.colors;
   const posture = derivePosture(history, capabilities.map((item) => item.state));
   const attention = history.filter((item) => needsAttention(item.verdict));
   const signals = attention.slice(0, 4).map((item) => ({ id: item.id, title: item.kind === 'url' ? 'Link assessment needs review' : 'File assessment needs review', detail: item.subject, severity: item.verdict === 'malicious' ? 'danger' as const : 'warning' as const, time: formatTime(item.createdAt), source: item.kind === 'url' ? 'PHISHING PROTECTION' : 'FILE SECURITY' }));
   const latest = history[0];
+  const lastManual = scanRuns.find((item) => item.mode === 'manual');
+  const lastAutomatic = scanRuns.find((item) => item.mode === 'automatic');
 
-  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}>
+  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}><AmbientBackdrop />
     <BrandHeader label="Security dashboard" onProfile={onProfile} />
     <View style={styles.heroHead}><Text style={[styles.eyebrow, { color: c.signal }]}>SENTINEL STATUS</Text><Text style={[styles.heroTitle, { color: c.ink }]}>{posture.title}</Text><Text style={[styles.heroCopy, { color: c.inkMuted }]}>{posture.detail}</Text></View>
     <SentinelCore items={capabilities} posture={posture.tone} onPress={onProtection} />
     <View style={[styles.statusRail, { borderTopColor: c.line, borderBottomColor: c.line }]}><RailItem value={`${posture.availableModules}/${posture.totalModules}`} label="MODULES READY" /><RailItem value={String(posture.attentionCount)} label="NEED REVIEW" /><RailItem value={history.length ? String(history.length) : '—'} label="LOCAL CHECKS" /></View>
 
+    <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Scan operations</Text><Pressable onPress={onScan}><Text style={[styles.sectionLink, { color: c.signal }]}>Open scan centre</Text></Pressable></View>
+    <View style={[styles.scanStatus, { borderTopColor: c.line, borderBottomColor: c.line }]}><ScanStatusRow label="MANUAL" title={lastManual ? lastManual.summary : 'No manual scan recorded'} meta={lastManual ? formatTime(lastManual.completedAt) : 'Run one when you are ready'} tone={lastManual?.highestSeverity === 'danger' ? 'danger' : lastManual?.findingCount ? 'warning' : 'safe'} /><ScanStatusRow label="AUTOMATIC" title={automaticScan?.enabled ? lastAutomatic ? lastAutomatic.summary : 'Scheduled; no background run recorded' : 'Automatic Scan is off'} meta={automaticScan?.enabled ? automaticScan.schedulerNote ?? 'Android selects the execution time.' : 'Configure it in the Scan centre'} tone={automaticScan?.enabled ? lastAutomatic?.findingCount ? 'warning' : 'safe' : 'info'} /></View>
+
     <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Quick protection</Text><Text style={[styles.sectionMeta, { color: c.inkMuted }]}>ON DEVICE</Text></View>
-    <View style={styles.quickActions}><Pressable onPress={onScan} style={[styles.urlAction, { backgroundColor: c.forest }]}><ModuleGlyph id="phishing" size={36} tone="default" /><View><Text style={[styles.quickKicker, { color: c.onForest }]}>PHISHING PROTECTION</Text><Text style={[styles.quickTitle, { color: c.onForest }]}>Check a suspicious link</Text></View></Pressable><Pressable onPress={onFileScan} style={[styles.fileAction, { backgroundColor: c.surfaceStrong, borderColor: c.line }]}><ModuleGlyph id="file" size={30} tone="active" /><Text style={[styles.fileActionTitle, { color: c.ink }]}>Inspect a file</Text><Text style={[styles.fileActionCopy, { color: c.inkMuted }]}>Metadata only</Text></Pressable></View>
+    <View style={styles.quickActions}><Pressable onPress={onScan} style={[styles.urlAction, { backgroundColor: c.forest }]}><ModuleGlyph id="phishing" size={36} tone="default" /><View><Text style={[styles.quickKicker, { color: c.onForest }]}>PHISHING PROTECTION</Text><Text style={[styles.quickTitle, { color: c.onForest }]}>Check a suspicious link</Text></View></Pressable><Pressable onPress={onFileScan} style={[styles.fileAction, { backgroundColor: c.surfaceStrong, borderColor: c.line }]}><ModuleGlyph id="file" size={30} tone="active" /><Text style={[styles.fileActionTitle, { color: c.ink }]}>Inspect a file</Text><Text style={[styles.fileActionCopy, { color: c.inkMuted }]}>Header + SHA-256</Text></Pressable></View>
 
     <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Threat alerts</Text><Pressable onPress={onAlerts}><Text style={[styles.sectionLink, { color: c.signal }]}>Open alerts</Text></Pressable></View>
     {attention.length ? <Pressable onPress={onAlerts} style={[styles.attentionStrip, { borderLeftColor: c.danger, backgroundColor: c.dangerSoft }]}><StatusDot state="danger" size={9} /><View style={styles.attentionBody}><Text style={[styles.attentionTitle, { color: c.ink }]}>{attention.length} assessment{attention.length === 1 ? '' : 's'} needs review</Text><Text numberOfLines={1} style={[styles.attentionCopy, { color: c.inkMuted }]}>{attention[0].subject}</Text></View><VerdictPill verdict={attention[0].verdict} /></Pressable> : <Pressable onPress={onAlerts} style={[styles.emptyAlert, { backgroundColor: c.surfaceMuted }]}><StatusDot state="safe" size={8} /><Text style={[styles.emptyAlertText, { color: c.inkMuted }]}>No threat alerts from saved local assessments.</Text></Pressable>}
@@ -53,6 +61,11 @@ function RailItem({ value, label }: { value: string; label: string }) {
   return <View style={styles.railItem}><Text style={[styles.railValue, { color: theme.colors.ink }]}>{value}</Text><Text style={[styles.railLabel, { color: theme.colors.inkMuted }]}>{label}</Text></View>;
 }
 
+function ScanStatusRow({ label, title, meta, tone }: { label: string; title: string; meta: string; tone: 'safe' | 'warning' | 'danger' | 'info' }) {
+  const { theme } = useTheme();
+  return <View style={styles.scanStatusRow}><StatusDot state={tone} size={8} /><View style={styles.scanStatusBody}><Text style={[styles.scanStatusLabel, { color: theme.colors.inkMuted }]}>{label}</Text><Text numberOfLines={1} style={[styles.scanStatusTitle, { color: theme.colors.ink }]}>{title}</Text><Text numberOfLines={2} style={[styles.scanStatusMeta, { color: theme.colors.inkMuted }]}>{meta}</Text></View></View>;
+}
+
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Just now';
@@ -60,7 +73,7 @@ function formatTime(value: string) {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 52, paddingHorizontal: space.md, paddingBottom: 104, minHeight: '100%' },
+  content: { position: 'relative', paddingTop: 52, paddingHorizontal: space.md, paddingBottom: 104, minHeight: '100%' },
   heroHead: { marginTop: space.xl, maxWidth: 350 },
   eyebrow: { fontFamily: type.mono, fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
   heroTitle: { fontFamily: type.display, fontSize: 30, lineHeight: 36, letterSpacing: -0.85, fontWeight: '700', marginTop: 9 },
@@ -69,6 +82,7 @@ const styles = StyleSheet.create({
   railItem: { flex: 1, alignItems: 'center' }, railValue: { fontFamily: type.display, fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] }, railLabel: { fontFamily: type.mono, fontSize: 7, letterSpacing: 0.45, textAlign: 'center', marginTop: 3 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginTop: space.xl, marginBottom: space.sm },
   sectionTitle: { fontFamily: type.display, fontSize: 19, fontWeight: '700', letterSpacing: -0.3 }, sectionMeta: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.55 }, sectionLink: { fontFamily: type.body, fontSize: 11, fontWeight: '800' },
+  scanStatus: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth }, scanStatusRow: { minHeight: 65, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 }, scanStatusBody: { flex: 1 }, scanStatusLabel: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.55 }, scanStatusTitle: { fontFamily: type.body, fontSize: 11, fontWeight: '800', marginTop: 3 }, scanStatusMeta: { fontFamily: type.body, fontSize: 9, lineHeight: 13, marginTop: 3 },
   quickActions: { flexDirection: 'row', gap: 10 }, urlAction: { flex: 1.34, minHeight: 149, padding: 16, justifyContent: 'space-between' }, fileAction: { flex: 0.86, minHeight: 149, padding: 14, borderWidth: 1, justifyContent: 'space-between' },
   quickKicker: { fontFamily: type.mono, fontSize: 8, letterSpacing: 0.6, fontWeight: '800' }, quickTitle: { fontFamily: type.display, fontSize: 19, lineHeight: 23, fontWeight: '700', maxWidth: 145 }, fileActionTitle: { fontFamily: type.body, fontSize: 14, fontWeight: '800' }, fileActionCopy: { fontFamily: type.body, fontSize: 10, marginTop: 4 },
   attentionStrip: { minHeight: 82, padding: 14, borderLeftWidth: 3, flexDirection: 'row', alignItems: 'center', gap: 10 }, attentionBody: { flex: 1 }, attentionTitle: { fontFamily: type.body, fontSize: 13, fontWeight: '800' }, attentionCopy: { fontFamily: type.body, fontSize: 10, marginTop: 4 },
