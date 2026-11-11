@@ -8,59 +8,241 @@ import { needsAttention } from '../../domain/productState';
 import type { ScanHistoryItem } from '../../types/security';
 import type { AutomaticScanSettings, ScanRun } from '../../types/scanning';
 
-type Props = { history: ScanHistoryItem[]; scanRuns: ScanRun[]; automaticScan: AutomaticScanSettings | null; onScan: () => void; onAutomaticScan: () => void; onFileScan: () => void; onProtection: () => void; onActivity: () => void; onProfile: () => void; onAlerts: () => void; onCapability: (capability: Capability) => void; };
+type Props = {
+  history: ScanHistoryItem[];
+  scanRuns: ScanRun[];
+  automaticScan: AutomaticScanSettings | null;
+  onScan: () => void;
+  onAutomaticScan: () => void;
+  onFileScan: () => void;
+  onProtection: () => void;
+  onActivity: () => void;
+  onProfile: () => void;
+  onAlerts: () => void;
+  onCapability: (capability: Capability) => void;
+};
 
+/** The home surface is intentionally short and visual: status, action, modules. */
 export function HomeScreen({ history, scanRuns, automaticScan, onScan, onAutomaticScan, onFileScan, onProtection, onActivity, onProfile, onAlerts, onCapability }: Props) {
-  const { theme } = useTheme(); const c = theme.colors;
+  const { theme } = useTheme();
+  const c = theme.colors;
   const readyModules = capabilities.filter((module) => module.state === 'ready').length;
   const attention = history.filter((item) => needsAttention(item.verdict));
   const lastRun = scanRuns[0];
-  // Link and file checks need user-provided input, so a completed device baseline is
-  // established by the four on-device modules rather than requiring empty inputs.
   const deviceBaselineModules = ['apps', 'wifi', 'network', 'bluetooth'] as const;
   const baseline = scanRuns.find((item) => item.mode === 'manual' && deviceBaselineModules.every((moduleId) => item.results.some((result) => result.moduleId === moduleId && result.status === 'completed')));
   const protectedState = attention.length === 0 && Boolean(baseline);
   const needsReview = attention.length > 0;
-  const postureTitle = needsReview ? 'Review needed' : protectedState ? 'Protected' : 'Ready to scan';
-  const postureSubtitle = needsReview ? `${attention.length} saved assessment${attention.length === 1 ? '' : 's'} needs review` : protectedState ? 'Latest full scan found no review items' : 'Run a full device scan to set a baseline';
+  const statusTitle = needsReview ? 'Review needed' : protectedState ? 'Protected' : 'Ready to scan';
+  const statusCopy = needsReview
+    ? `${attention.length} saved assessment${attention.length === 1 ? '' : 's'} needs your review`
+    : protectedState
+      ? 'Your latest device baseline has no review items'
+      : 'Run a full device scan to create your baseline';
   const monitoringEnabled = Boolean(automaticScan?.enabled);
-  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}><AmbientBackdrop />
+
+  return <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { backgroundColor: c.canvas }]}>
+    <AmbientBackdrop />
     <BrandHeader label="Protection Centre" onProfile={onProfile} />
-    <View style={styles.welcomeRow}><View><Text style={[styles.welcomeKicker, { color: c.inkMuted }]}>Welcome back,</Text><Text style={[styles.welcomeName, { color: c.ink }]}>your device</Text></View><View style={[styles.livePill, { borderColor: c.line, backgroundColor: c.monitoringQuiet }]}><StatusDot state={monitoringEnabled ? 'safe' : 'info'} size={7} /><Text style={[styles.liveText, { color: monitoringEnabled ? c.signal : c.inkMuted }]}>{monitoringEnabled ? 'SCHEDULED' : 'LOCAL'}</Text></View></View>
-    <Pressable onPress={onProtection} style={[styles.protectionCard, { backgroundColor: c.surfaceStrong, borderColor: c.monitoringLine }]}><View style={[styles.cardGlow, { backgroundColor: needsReview ? c.amber : c.signal }]} /><ProtectionOrb protectedState={protectedState} needsReview={needsReview} /><View style={styles.protectionCopy}><Text style={[styles.cardKicker, { color: c.monitoringMuted }]}>DEVICE STATUS</Text><Text style={[styles.protectionTitle, { color: protectedState ? c.forest : needsReview ? c.amber : c.signal }]}>{postureTitle}</Text><Text style={[styles.protectionSubtitle, { color: c.white }]}>{postureSubtitle}</Text><View style={styles.protectionFooter}><StatusDot state={protectedState ? 'safe' : needsReview ? 'warning' : 'info'} size={7} /><Text style={[styles.protectionFooterText, { color: c.monitoringMuted }]}>{readyModules} security modules available</Text></View></View></Pressable>
-    <View style={[styles.statCard, { backgroundColor: c.surface, borderColor: c.line }]}><Stat value={String(readyModules)} label="Security modules" glyph="network" /><View style={[styles.statDivider, { backgroundColor: c.line }]} /><Stat value={String(attention.length)} label="Issues found" glyph="phishing" warning={attention.length > 0} /><View style={[styles.statDivider, { backgroundColor: c.line }]} /><Stat value={lastRun ? formatDate(lastRun.completedAt) : '—'} label="Last scan" glyph="file" compact /></View>
-    <View style={[styles.monitorCard, { backgroundColor: c.monitoringQuiet, borderColor: c.monitoringLine }]}><View style={[styles.monitorIcon, { backgroundColor: c.signalSoft }]}><StatusDot state={monitoringEnabled ? 'safe' : 'info'} size={10} /></View><View style={styles.monitorCopy}><Text style={[styles.monitorTitle, { color: c.ink }]}>Ongoing protection</Text><Text style={[styles.monitorSubtitle, { color: c.monitoringMuted }]}>{monitoringEnabled ? 'Automatic local checks are scheduled and run when Android permits.' : 'Set up Automatic Scan to schedule local link, Wi-Fi, and connection checks.'}</Text></View><Text style={[styles.monitorAction, { color: monitoringEnabled ? c.forest : c.inkMuted }]}>{monitoringEnabled ? 'Scheduled' : 'Set up'}</Text></View>
-    <View style={styles.sectionHeader}><View><Text style={[styles.sectionTitle, { color: c.ink }]}>Quick Scan</Text><Text style={[styles.sectionSubtitle, { color: c.inkMuted }]}>Run a security check now</Text></View><Pressable onPress={onScan}><Text style={[styles.viewAll, { color: c.forest }]}>Open scan →</Text></Pressable></View>
-    <View style={[styles.quickCard, { backgroundColor: c.surface, borderColor: c.line }]}><Pressable onPress={onScan} style={[styles.manualAction, { backgroundColor: c.forest }]}><View style={[styles.actionIcon, { backgroundColor: c.onForest }]}><Text style={[styles.playIcon, { color: c.forest }]}>▶</Text></View><View><Text style={[styles.actionTitle, { color: c.onForest }]}>Full device scan</Text><Text style={[styles.actionCopy, { color: c.onForestMuted }]}>Check all 6 modules</Text></View></Pressable><Pressable onPress={onAutomaticScan} style={[styles.autoAction, { borderColor: c.monitoringLine }]}><View style={[styles.autoIcon, { borderColor: c.signal }]}><Text style={[styles.autoGlyph, { color: c.signal }]}>◌</Text></View><View><Text style={[styles.autoTitle, { color: c.ink }]}>Automatic Scan</Text><Text style={[styles.autoCopy, { color: c.inkMuted }]}>{automaticScan?.enabled ? 'Scheduled' : 'Set up schedule'}</Text></View></Pressable></View>
-    <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Security Modules</Text><Pressable onPress={onProtection}><Text style={[styles.viewAll, { color: c.forest }]}>View all →</Text></Pressable></View>
-    <View style={styles.moduleGrid}>{capabilities.map((module) => <Pressable key={module.id} onPress={() => onCapability(module)} style={[styles.moduleCard, { backgroundColor: c.surface, borderColor: c.line }]}><View style={styles.moduleTop}><View style={[styles.moduleGlyphWrap, { backgroundColor: c.monitoringQuiet }]}><ModuleGlyph id={module.id} size={25} tone={module.state === 'ready' ? 'active' : 'default'} /></View>{module.state === 'ready' ? <View style={[styles.readyMark, { backgroundColor: c.forest }]}><Text style={[styles.readyCheck, { color: c.onForest }]}>✓</Text></View> : <StatusDot state={module.state} size={8} />}</View><Text numberOfLines={2} style={[styles.moduleTitle, { color: c.ink }]}>{module.title.replace('Application', 'App')}</Text><Text style={[styles.moduleState, { color: module.state === 'ready' ? c.signal : c.inkMuted }]}>{module.state === 'ready' ? 'Ready' : 'Unavailable'}</Text></Pressable>)}</View>
-    <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: c.ink }]}>Recent Activity</Text><Pressable onPress={attention.length ? onAlerts : onActivity}><Text style={[styles.viewAll, { color: c.forest }]}>View all →</Text></Pressable></View>
-    <Pressable onPress={attention.length ? onAlerts : onActivity} style={[styles.activityCard, { backgroundColor: c.surface, borderColor: c.line }]}><View style={[styles.activityIcon, { backgroundColor: attention.length ? c.amberSoft : c.signalSoft }]}><StatusDot state={attention.length ? 'warning' : baseline ? 'safe' : 'info'} size={10} /></View><View style={styles.activityCopy}><Text style={[styles.activityTitle, { color: c.ink }]}>{attention.length ? `${attention.length} item${attention.length === 1 ? '' : 's'} needs attention` : baseline ? 'No local findings need attention' : 'No completed full scan yet'}</Text><Text numberOfLines={1} style={[styles.activitySubtitle, { color: c.inkMuted }]}>{attention.length ? attention[0].subject : lastRun ? lastRun.summary : 'Run a full-device scan to create your first report.'}</Text></View><Text style={[styles.activityChevron, { color: c.inkMuted }]}>›</Text></Pressable>
-    <Pressable onPress={onFileScan} style={styles.fileShortcut}><ModuleGlyph id="file" size={17} tone="active" /><Text style={[styles.fileShortcutText, { color: c.monitoringMuted }]}>Need to inspect a file instead?</Text><Text style={[styles.fileShortcutLink, { color: c.signal }]}>Choose file</Text></Pressable><View style={styles.bottomSpace} />
+
+    <View style={styles.welcomeRow}>
+      <View>
+        <Text style={[styles.welcomeKicker, { color: c.inkMuted }]}>Welcome back,</Text>
+        <Text style={[styles.welcomeName, { color: c.ink }]}>Security admin</Text>
+      </View>
+      <View style={[styles.devicePill, { borderColor: c.monitoringLine, backgroundColor: c.monitoringQuiet }]}>
+        <StatusDot state="safe" size={6} />
+        <Text style={[styles.devicePillText, { color: c.signal }]}>THIS DEVICE</Text>
+      </View>
+    </View>
+
+    <Pressable accessibilityRole="button" accessibilityLabel="Open protection modules" onPress={onProtection} style={[styles.statusHero, { backgroundColor: c.surfaceStrong, borderColor: c.monitoringLine }]}>
+      <HeroWaves tone={needsReview ? c.amber : protectedState ? c.forest : c.signal} />
+      <ProtectionEmblem protectedState={protectedState} needsReview={needsReview} />
+      <View style={styles.statusCopy}>
+        <Text style={[styles.statusKicker, { color: c.monitoringMuted }]}>DEVICE STATUS</Text>
+        <Text style={[styles.statusTitle, { color: needsReview ? c.amber : protectedState ? c.forest : c.signal }]}>{statusTitle}</Text>
+        <Text numberOfLines={2} style={[styles.statusSubtitle, { color: c.white }]}>{statusCopy}</Text>
+        <View style={styles.statusFootnote}>
+          <StatusDot state={protectedState ? 'safe' : needsReview ? 'warning' : 'info'} size={7} />
+          <Text style={[styles.statusFootnoteText, { color: c.monitoringMuted }]}>{readyModules} security modules ready</Text>
+        </View>
+      </View>
+    </Pressable>
+
+    <View style={[styles.metrics, { backgroundColor: c.surface, borderColor: c.line }]}>
+      <Metric value={String(readyModules)} label="Security modules" glyph="network" />
+      <View style={[styles.metricDivider, { backgroundColor: c.line }]} />
+      <Metric value={String(attention.length)} label="Issues found" glyph="phishing" warning={attention.length > 0} />
+      <View style={[styles.metricDivider, { backgroundColor: c.line }]} />
+      <Metric value={lastRun ? formatDate(lastRun.completedAt) : '—'} label="Last scan" glyph="file" compact />
+    </View>
+
+    <View style={[styles.quickCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+      <View style={styles.quickHeading}>
+        <View>
+          <Text style={[styles.sectionTitle, { color: c.ink }]}>Quick Scan</Text>
+          <Text style={[styles.sectionSubtitle, { color: c.inkMuted }]}>Run a security check now</Text>
+        </View>
+        <Pressable accessibilityRole="button" onPress={onScan}><Text style={[styles.viewAll, { color: c.forest }]}>Open scan →</Text></Pressable>
+      </View>
+      <View style={styles.quickActions}>
+        <Pressable accessibilityRole="button" onPress={onScan} style={({ pressed }) => [styles.manualAction, { backgroundColor: c.forest, opacity: pressed ? 0.88 : 1 }]}>
+          <View style={[styles.playCircle, { backgroundColor: c.onForest }]}><Text style={[styles.playIcon, { color: c.forest }]}>▶</Text></View>
+          <View><Text style={[styles.manualActionTitle, { color: c.onForest }]}>Manual Scan</Text><Text style={[styles.manualActionCopy, { color: c.onForestMuted }]}>All 6 modules</Text></View>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onAutomaticScan} style={({ pressed }) => [styles.autoAction, { borderColor: c.monitoringLine, backgroundColor: c.monitoringQuiet, opacity: pressed ? 0.88 : 1 }]}>
+          <View style={[styles.autoCalendar, { borderColor: c.signal }]}><View style={[styles.calendarTop, { backgroundColor: c.signal }]} /><View style={[styles.calendarDot, { backgroundColor: c.signal }]} /></View>
+          <View><Text style={[styles.autoActionTitle, { color: c.ink }]}>Auto Scan</Text><Text style={[styles.autoActionCopy, { color: monitoringEnabled ? c.signal : c.inkMuted }]}>{monitoringEnabled ? 'Scheduled' : 'Set up'}</Text></View>
+        </Pressable>
+      </View>
+    </View>
+
+    <Pressable accessibilityRole="button" onPress={onAutomaticScan} style={[styles.monitoringStrip, { borderColor: c.monitoringLine, backgroundColor: c.monitoringQuiet }]}>
+      <LiveBeacon active={monitoringEnabled} />
+      <View style={styles.monitoringCopy}>
+        <Text style={[styles.monitoringTitle, { color: c.ink }]}>Ongoing protection</Text>
+        <Text numberOfLines={1} style={[styles.monitoringSubtitle, { color: c.monitoringMuted }]}>{monitoringEnabled ? 'Automatic local checks are scheduled.' : 'Set an automatic local-check schedule.'}</Text>
+      </View>
+      <Text style={[styles.monitoringAction, { color: monitoringEnabled ? c.forest : c.signal }]}>{monitoringEnabled ? 'Active' : 'Set up'} ›</Text>
+    </Pressable>
+
+    <View style={styles.sectionHead}>
+      <Text style={[styles.sectionTitle, { color: c.ink }]}>Security Modules</Text>
+      <Pressable accessibilityRole="button" onPress={onProtection}><Text style={[styles.viewAll, { color: c.forest }]}>View all →</Text></Pressable>
+    </View>
+    <View style={styles.moduleGrid}>{capabilities.map((module) => <Pressable accessibilityRole="button" key={module.id} onPress={() => onCapability(module)} style={({ pressed }) => [styles.moduleCard, { backgroundColor: c.surface, borderColor: c.line, opacity: pressed ? 0.82 : 1 }]}>
+      <View style={styles.moduleTop}>
+        <View style={[styles.moduleGlyphWrap, { backgroundColor: c.monitoringQuiet }]}><ModuleGlyph id={module.id} size={24} tone="active" /></View>
+        <View style={[styles.checkMark, { backgroundColor: c.forest }]}><Text style={[styles.checkText, { color: c.onForest }]}>✓</Text></View>
+      </View>
+      <Text numberOfLines={2} style={[styles.moduleTitle, { color: c.ink }]}>{module.title.replace('Application', 'App')}</Text>
+      <Text style={[styles.moduleState, { color: c.signal }]}>Ready</Text>
+    </Pressable>)}</View>
+
+    <View style={styles.sectionHead}>
+      <Text style={[styles.sectionTitle, { color: c.ink }]}>Recent Activity</Text>
+      <Pressable accessibilityRole="button" onPress={attention.length ? onAlerts : onActivity}><Text style={[styles.viewAll, { color: c.forest }]}>View all →</Text></Pressable>
+    </View>
+    <Pressable accessibilityRole="button" onPress={attention.length ? onAlerts : onActivity} style={[styles.activityCard, { backgroundColor: c.surface, borderColor: c.line }]}>
+      <View style={[styles.activityIcon, { backgroundColor: attention.length ? c.amberSoft : c.signalSoft }]}><StatusDot state={attention.length ? 'warning' : baseline ? 'safe' : 'info'} size={10} /></View>
+      <View style={styles.activityCopy}>
+        <Text numberOfLines={1} style={[styles.activityTitle, { color: c.ink }]}>{attention.length ? `${attention.length} item${attention.length === 1 ? '' : 's'} needs attention` : baseline ? 'No local findings need attention' : 'No completed full scan yet'}</Text>
+        <Text numberOfLines={1} style={[styles.activitySubtitle, { color: c.inkMuted }]}>{attention.length ? attention[0].subject : lastRun ? lastRun.summary : 'Run a full-device scan to create your first report.'}</Text>
+      </View>
+      <Text style={[styles.activityChevron, { color: c.inkMuted }]}>›</Text>
+    </Pressable>
+    <Pressable accessibilityRole="button" onPress={onFileScan} style={styles.fileShortcut}><ModuleGlyph id="file" size={16} tone="active" /><Text style={[styles.fileShortcutText, { color: c.monitoringMuted }]}>Inspect a file</Text><Text style={[styles.fileShortcutLink, { color: c.signal }]}>Choose file →</Text></Pressable>
+    <View style={styles.bottomSpace} />
   </ScrollView>;
 }
 
-function ProtectionOrb({ protectedState, needsReview }: { protectedState: boolean; needsReview: boolean }) {
-  const { theme, reducedMotion } = useTheme(); const spin = useRef(new Animated.Value(0)).current; const pulse = useRef(new Animated.Value(0.75)).current;
-  useEffect(() => { if (reducedMotion) return; const rotation = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 8500, easing: Easing.linear, useNativeDriver: true })); const breathe = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 1350, useNativeDriver: true }), Animated.timing(pulse, { toValue: 0.72, duration: 1350, useNativeDriver: true })])); rotation.start(); breathe.start(); return () => { rotation.stop(); breathe.stop(); }; }, [pulse, reducedMotion, spin]);
-  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const tone = protectedState ? theme.colors.signal : needsReview ? theme.colors.amber : theme.colors.inkMuted;
-  return <View style={styles.orb}><Animated.View style={[styles.orbHalo, { borderColor: tone, opacity: pulse, transform: [{ rotate }] }]}><View style={[styles.orbNode, { backgroundColor: tone }]} /></Animated.View><View style={[styles.orbCore, { borderColor: tone, backgroundColor: theme.colors.monitoringSurface }]}><Text style={[styles.shieldCheck, { color: tone }]}>{protectedState ? '✓' : needsReview ? '!' : '◌'}</Text></View></View>;
+function HeroWaves({ tone }: { tone: string }) {
+  const { reducedMotion } = useTheme();
+  const travel = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reducedMotion) { travel.stopAnimation(); travel.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(travel, { toValue: 1, duration: 6200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(travel, { toValue: 0, duration: 6200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [reducedMotion, travel]);
+  const shift = travel.interpolate({ inputRange: [0, 1], outputRange: [-34, 26] });
+  return <View pointerEvents="none" style={styles.waveField}>
+    <Animated.View style={[styles.wave, styles.waveOne, { borderColor: tone, transform: [{ translateX: shift }, { rotate: '-8deg' }] }]} />
+    <Animated.View style={[styles.wave, styles.waveTwo, { borderColor: tone, transform: [{ translateX: shift }, { rotate: '7deg' }] }]} />
+    <View style={[styles.waveGlow, { backgroundColor: tone }]} />
+  </View>;
 }
 
-function Stat({ value, label, glyph, warning = false, compact = false }: { value: string; label: string; glyph: 'network' | 'phishing' | 'file'; warning?: boolean; compact?: boolean }) { const { theme } = useTheme(); return <View style={styles.stat}><ModuleGlyph id={glyph} size={19} tone={warning ? 'warning' : 'active'} /><Text numberOfLines={1} style={[styles.statValue, compact && styles.statValueCompact, { color: warning ? theme.colors.amber : theme.colors.ink }]}>{value}</Text><Text numberOfLines={1} style={[styles.statLabel, { color: theme.colors.inkMuted }]}>{label}</Text></View>; }
-function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Today' : date.toLocaleDateString([], { month: 'short', day: 'numeric' }); }
+function ProtectionEmblem({ protectedState, needsReview }: { protectedState: boolean; needsReview: boolean }) {
+  const { theme, reducedMotion } = useTheme();
+  const c = theme.colors;
+  const pulse = useRef(new Animated.Value(0.65)).current;
+  useEffect(() => {
+    if (reducedMotion) { pulse.stopAnimation(); pulse.setValue(0.8); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 1150, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.55, duration: 1150, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse, reducedMotion]);
+  const tone = needsReview ? c.amber : protectedState ? c.forest : c.signal;
+  return <View style={styles.emblem}>
+    <Animated.View style={[styles.emblemPulse, { backgroundColor: tone, opacity: pulse }]} />
+    <View style={[styles.emblemShield, { borderColor: tone, backgroundColor: c.monitoringSurface }]}>
+      <Text style={[styles.emblemGlyph, { color: tone }]}>{needsReview ? '!' : protectedState ? '✓' : '⌁'}</Text>
+    </View>
+  </View>;
+}
+
+function LiveBeacon({ active }: { active: boolean }) {
+  const { theme, reducedMotion } = useTheme();
+  const ping = useRef(new Animated.Value(0.35)).current;
+  useEffect(() => {
+    if (!active || reducedMotion) { ping.stopAnimation(); ping.setValue(active ? 0.72 : 0.32); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(ping, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.timing(ping, { toValue: 0.35, duration: 1000, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [active, ping, reducedMotion]);
+  return <View style={styles.beacon}><Animated.View style={[styles.beaconHalo, { borderColor: active ? theme.colors.forest : theme.colors.signal, opacity: ping }]} /><View style={[styles.beaconDot, { backgroundColor: active ? theme.colors.forest : theme.colors.signal }]} /></View>;
+}
+
+function Metric({ value, label, glyph, warning = false, compact = false }: { value: string; label: string; glyph: 'network' | 'phishing' | 'file'; warning?: boolean; compact?: boolean }) {
+  const { theme } = useTheme();
+  return <View style={styles.metric}>
+    <ModuleGlyph id={glyph} size={18} tone={warning ? 'warning' : 'active'} />
+    <Text numberOfLines={1} style={[styles.metricValue, compact && styles.metricValueCompact, { color: warning ? theme.colors.amber : theme.colors.ink }]}>{value}</Text>
+    <Text numberOfLines={1} style={[styles.metricLabel, { color: theme.colors.inkMuted }]}>{label}</Text>
+  </View>;
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Today' : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
 
 const styles = StyleSheet.create({
   content: { position: 'relative', paddingTop: 52, paddingHorizontal: space.md, paddingBottom: 104, minHeight: '100%' },
-  welcomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 28 }, welcomeKicker: { fontFamily: type.body, fontSize: 15 }, welcomeName: { fontFamily: type.display, fontSize: 24, fontWeight: '800', letterSpacing: -0.55, marginTop: 2 }, livePill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 }, liveText: { fontFamily: type.mono, fontSize: 9, letterSpacing: 0.7, fontWeight: '800' },
-  protectionCard: { minHeight: 142, borderWidth: 1, borderRadius: radius.lg, overflow: 'hidden', marginTop: 20, padding: 18, flexDirection: 'row', alignItems: 'center' }, cardGlow: { position: 'absolute', width: 210, height: 130, opacity: 0.12, borderRadius: 100, right: -74, top: -52 }, protectionCopy: { flex: 1, paddingLeft: 13 }, cardKicker: { fontFamily: type.body, fontSize: 12, fontWeight: '700' }, protectionTitle: { fontFamily: type.display, fontSize: 26, fontWeight: '800', letterSpacing: -0.6, marginTop: 4 }, protectionSubtitle: { fontFamily: type.body, fontSize: 12, marginTop: 3 }, protectionFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 13 }, protectionFooterText: { fontFamily: type.body, fontSize: 10 },
-  orb: { width: 94, height: 94, alignItems: 'center', justifyContent: 'center' }, orbHalo: { width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderRightColor: 'transparent', alignItems: 'center', paddingTop: 2 }, orbNode: { width: 7, height: 7, borderRadius: 4 }, orbCore: { position: 'absolute', width: 59, height: 59, borderRadius: 30, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' }, shieldCheck: { fontFamily: type.display, fontSize: 29, fontWeight: '800' },
-  statCard: { minHeight: 79, borderWidth: 1, borderRadius: radius.md, marginTop: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4 }, stat: { flex: 1, alignItems: 'center', minWidth: 0 }, statDivider: { height: 39, width: StyleSheet.hairlineWidth }, statValue: { fontFamily: type.display, fontSize: 19, fontWeight: '800', marginTop: 2, fontVariant: ['tabular-nums'] }, statValueCompact: { fontSize: 13, marginTop: 7 }, statLabel: { fontFamily: type.body, fontSize: 8, marginTop: 1, textAlign: 'center' },
-  monitorCard: { minHeight: 71, borderWidth: 1, borderRadius: radius.md, marginTop: 13, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }, monitorIcon: { width: 37, height: 37, borderRadius: 19, alignItems: 'center', justifyContent: 'center' }, monitorCopy: { flex: 1 }, monitorTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, monitorSubtitle: { fontFamily: type.body, fontSize: 9, lineHeight: 13, marginTop: 3 }, monitorAction: { fontFamily: type.body, fontSize: 10, fontWeight: '800' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 26, marginBottom: 10 }, sectionTitle: { fontFamily: type.display, fontSize: 19, fontWeight: '800', letterSpacing: -0.35 }, sectionSubtitle: { fontFamily: type.body, fontSize: 10, marginTop: 2 }, viewAll: { fontFamily: type.body, fontSize: 10, fontWeight: '800' },
-  quickCard: { borderRadius: radius.lg, borderWidth: 1, padding: 11, gap: 9 }, manualAction: { minHeight: 64, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 12 }, actionIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }, playIcon: { fontSize: 12, marginLeft: 2 }, actionTitle: { fontFamily: type.body, fontSize: 14, fontWeight: '800' }, actionCopy: { fontFamily: type.body, fontSize: 10, marginTop: 2 }, autoAction: { minHeight: 57, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 12 }, autoIcon: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' }, autoGlyph: { fontSize: 22, lineHeight: 22 }, autoTitle: { fontFamily: type.body, fontSize: 13, fontWeight: '800' }, autoCopy: { fontFamily: type.body, fontSize: 10, marginTop: 2 },
-  moduleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, moduleCard: { width: '31.6%', minHeight: 121, borderWidth: 1, borderRadius: radius.md, padding: 11, justifyContent: 'space-between' }, moduleTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }, moduleGlyphWrap: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, readyMark: { width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center' }, readyCheck: { fontFamily: type.body, fontSize: 10, fontWeight: '800' }, moduleTitle: { fontFamily: type.body, fontSize: 11, lineHeight: 14, fontWeight: '800', marginTop: 8 }, moduleState: { fontFamily: type.body, fontSize: 8, marginTop: 3 },
-  activityCard: { minHeight: 72, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 }, activityIcon: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }, activityCopy: { flex: 1 }, activityTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, activitySubtitle: { fontFamily: type.body, fontSize: 10, marginTop: 3 }, activityChevron: { fontFamily: type.body, fontSize: 25, fontWeight: '300' },
+  welcomeRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 27 },
+  welcomeKicker: { fontFamily: type.body, fontSize: 15 },
+  welcomeName: { fontFamily: type.display, fontSize: 25, letterSpacing: -0.7, fontWeight: '800', marginTop: 2 },
+  devicePill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 6 },
+  devicePillText: { fontFamily: type.mono, fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
+  statusHero: { minHeight: 147, marginTop: 20, borderWidth: 1, borderRadius: radius.lg, overflow: 'hidden', padding: 18, flexDirection: 'row', alignItems: 'center' },
+  waveField: { position: 'absolute', left: 0, right: 0, bottom: -36, height: 112, overflow: 'hidden' },
+  wave: { position: 'absolute', width: 370, height: 118, borderWidth: 1, opacity: 0.38, borderRadius: 180 },
+  waveOne: { left: -32, bottom: -82 }, waveTwo: { left: -4, bottom: -101, opacity: 0.2 },
+  waveGlow: { position: 'absolute', right: -62, bottom: -100, width: 244, height: 145, opacity: 0.13, borderRadius: 140 },
+  emblem: { width: 87, height: 87, alignItems: 'center', justifyContent: 'center' },
+  emblemPulse: { position: 'absolute', width: 82, height: 82, borderRadius: 41, opacity: 0.1 },
+  emblemShield: { width: 56, height: 62, borderWidth: 1.8, borderRadius: 19, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '45deg' }] },
+  emblemGlyph: { fontFamily: type.display, fontSize: 27, lineHeight: 31, fontWeight: '800', transform: [{ rotate: '-45deg' }] },
+  statusCopy: { flex: 1, marginLeft: 10 },
+  statusKicker: { fontFamily: type.body, fontSize: 11, fontWeight: '700' },
+  statusTitle: { fontFamily: type.display, fontSize: 26, letterSpacing: -0.7, fontWeight: '800', marginTop: 3 },
+  statusSubtitle: { fontFamily: type.body, fontSize: 11, lineHeight: 16, marginTop: 2, maxWidth: 214 },
+  statusFootnote: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  statusFootnoteText: { fontFamily: type.body, fontSize: 9 },
+  metrics: { minHeight: 78, marginTop: 12, borderWidth: 1, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 3 },
+  metric: { flex: 1, alignItems: 'center', minWidth: 0 }, metricDivider: { width: StyleSheet.hairlineWidth, height: 38 },
+  metricValue: { fontFamily: type.display, fontSize: 19, lineHeight: 22, fontWeight: '800', marginTop: 1, fontVariant: ['tabular-nums'] }, metricValueCompact: { fontSize: 13, lineHeight: 19, marginTop: 4 },
+  metricLabel: { fontFamily: type.body, fontSize: 8, marginTop: 1, textAlign: 'center' },
+  quickCard: { marginTop: 15, borderWidth: 1, borderRadius: radius.lg, padding: 14 }, quickHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontFamily: type.display, fontSize: 19, letterSpacing: -0.35, fontWeight: '800' }, sectionSubtitle: { fontFamily: type.body, fontSize: 10, marginTop: 2 }, viewAll: { fontFamily: type.body, fontSize: 10, fontWeight: '800' },
+  quickActions: { flexDirection: 'row', gap: 9 }, manualAction: { flex: 1.12, minHeight: 58, borderRadius: radius.md, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 8 }, autoAction: { flex: 1, minHeight: 58, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  playCircle: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center' }, playIcon: { fontSize: 9, marginLeft: 1 }, manualActionTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, manualActionCopy: { fontFamily: type.body, fontSize: 9, marginTop: 2 },
+  autoCalendar: { width: 25, height: 25, borderRadius: 7, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, calendarTop: { position: 'absolute', left: 0, right: 0, top: 5, height: 1 }, calendarDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 }, autoActionTitle: { fontFamily: type.body, fontSize: 11, fontWeight: '800' }, autoActionCopy: { fontFamily: type.body, fontSize: 9, marginTop: 2 },
+  monitoringStrip: { minHeight: 66, marginTop: 12, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  beacon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }, beaconHalo: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 1.4 }, beaconDot: { width: 10, height: 10, borderRadius: 5 }, monitoringCopy: { flex: 1 }, monitoringTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, monitoringSubtitle: { fontFamily: type.body, fontSize: 9, marginTop: 3 }, monitoringAction: { fontFamily: type.body, fontSize: 10, fontWeight: '800' },
+  sectionHead: { marginTop: 25, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  moduleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, moduleCard: { width: '31.65%', minHeight: 111, borderWidth: 1, borderRadius: radius.md, padding: 10, justifyContent: 'space-between' }, moduleTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, moduleGlyphWrap: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, checkMark: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }, checkText: { fontFamily: type.body, fontSize: 9, fontWeight: '800' }, moduleTitle: { fontFamily: type.body, fontSize: 10, lineHeight: 13, fontWeight: '800', marginTop: 6 }, moduleState: { fontFamily: type.body, fontSize: 8, marginTop: 2 },
+  activityCard: { minHeight: 70, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 }, activityIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, activityCopy: { flex: 1 }, activityTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, activitySubtitle: { fontFamily: type.body, fontSize: 9, marginTop: 3 }, activityChevron: { fontFamily: type.body, fontSize: 24, fontWeight: '300' },
   fileShortcut: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 4, paddingTop: 16 }, fileShortcutText: { fontFamily: type.body, fontSize: 10 }, fileShortcutLink: { fontFamily: type.body, fontSize: 10, fontWeight: '800' }, bottomSpace: { height: 24 },
 });

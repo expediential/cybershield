@@ -2,7 +2,7 @@
 
 CyberShield is an Android cybersecurity companion with a complete product map: Phishing Protection, File Security, Application Security, Wi-Fi Security, Network Monitor, Bluetooth Security, Threat Alerts, Activity, Analytics, and privacy controls.
 
-Version 0.6.1 refines the Cyber teal interface, connects the App Security and Bluetooth cards to real permission-scoped Android checks, strengthens local URL domain parsing, and keeps device, on-demand, and scheduled states distinct.
+Version 0.7.0 rebuilds the primary experience around a dark, animated protection dashboard and a full-device scan surface with live per-module progress. It retains the permission-scoped Android checks and honest local-only boundaries introduced in the prior release.
 
 ## What works today
 
@@ -10,7 +10,7 @@ Version 0.6.1 refines the Cyber teal interface, connects the App Security and Bl
 | --- | --- |
 | Phishing Protection | Local URL normalization and structural analysis: HTTP, shorteners, punycode, IP hosts, suspicious URL patterns, risky TLDs, plus a local test blocklist. |
 | File Security | Android system file picker, local metadata/header inspection, and SHA-256 fingerprinting when the provider grants a readable stream. Files are never executed or uploaded. |
-| Wi-Fi Security | Android-reported connection type, reachable state, airplane mode, and local IP metadata. It does not inspect SSIDs, encryption, or traffic. |
+| Wi-Fi Security | Android-reported connection type, reachable state, airplane mode, and local IP metadata, plus SSID/encryption only when Android exposes them. It never inspects traffic. |
 | Network Security | Android-reported connectivity metadata only. It does not capture packets, DNS, TLS content, or flows. |
 | Manual Scan | One shared scan run with real module progress, skipped-module reporting, cancellation between modules, and local run history. |
 | Automatic Scan | Optional Android WorkManager scheduling for saved-link rechecks plus Wi-Fi/network connection metadata, with battery and Wi-Fi-only policy controls. |

@@ -14,7 +14,9 @@ type ThemeContextValue = {
   ready: boolean;
 };
 
-const preferenceKey = '@cybershield/theme/v1';
+// v2 starts the visual refresh in the product's dark security canvas.  Existing
+// v1 light preferences are deliberately not carried into the redesigned UI.
+const preferenceKey = '@cybershield/theme/v2';
 const demoKey = '@cybershield/demo-mode/v1';
 const reducedMotionKey = '@cybershield/reduced-motion/v1';
 const ThemeContext = createContext<ThemeContextValue | null>(null);

@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered in 0.6.1
+## Delivered in 0.7.0
 
 - [x] Sentinel dark-first visual system with a deliberately designed light mode
 - [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols
@@ -18,6 +18,7 @@
 - [x] Launcher-only PackageManager audit for declared sensitive-permission and review signals
 - [x] Just-in-time Bluetooth paired-device audit with Android Nearby devices permission
 - [x] Local public-suffix parsing for registrable-domain link checks
+- [x] Premium dark-first dashboard, animated protection status, compact module grid, and full-device scan progress surface
 
 ## Next implementation milestones
 

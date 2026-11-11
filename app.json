@@ -2,12 +2,12 @@
   "expo": {
     "name": "CyberShield",
     "slug": "cybershield",
-    "version": "0.6.1",
+    "version": "0.7.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "android": {
       "package": "com.expediential.cybershield",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "android.permission.ACCESS_WIFI_STATE",
         "android.permission.BLUETOOTH_CONNECT"

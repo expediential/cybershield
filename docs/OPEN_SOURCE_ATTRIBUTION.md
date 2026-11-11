@@ -16,6 +16,6 @@ CyberShield does not copy, bundle, or link the candidate projects in the table b
 
 ## Review record
 
-The technical review concluded that ClamAV, YARA, Magika, and MobSF are not responsible direct React Native/Expo mobile-client dependencies for this phase. They either require native/server runtimes, carry copyleft obligations, are designed as analysis platforms, or need separate privacy and operational controls. No source code, signatures, models, or feeds from these candidate projects are included in CyberShield 0.6.1.
+The technical review concluded that ClamAV, YARA, Magika, and MobSF are not responsible direct React Native/Expo mobile-client dependencies for this phase. They either require native/server runtimes, carry copyleft obligations, are designed as analysis platforms, or need separate privacy and operational controls. No source code, signatures, models, or feeds from these candidate projects are included in CyberShield 0.7.0.
 
 License and maintenance must be rechecked against a pinned version immediately before any integration. This document is an engineering record, not legal advice.
