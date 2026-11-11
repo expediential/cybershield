@@ -2,7 +2,7 @@
 
 CyberShield is an Android cybersecurity companion with a complete product map: Phishing Protection, File Security, Application Security, Wi-Fi Security, Network Monitor, Bluetooth Security, Threat Alerts, Activity, Analytics, and privacy controls.
 
-Version 0.6.0 refines the Cyber teal interface, connects the App Security and Bluetooth cards to real permission-scoped Android checks, strengthens local URL domain parsing, and retains clear limits for every module.
+Version 0.6.1 refines the Cyber teal interface, connects the App Security and Bluetooth cards to real permission-scoped Android checks, strengthens local URL domain parsing, and keeps device, on-demand, and scheduled states distinct.
 
 ## What works today
 

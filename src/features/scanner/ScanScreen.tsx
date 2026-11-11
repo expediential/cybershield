@@ -13,13 +13,13 @@ import type { ScanHistoryItem } from '../../types/security';
 import type { AutomaticScanSettings, FileScanInput, ScanProgress, ScanRun, ScanState } from '../../types/scanning';
 
 type ScanTab = 'manual' | 'automatic';
-type Props = { onProfile: () => void; onHistory: () => void; history: ScanHistoryItem[]; onManualRun: (run: ScanRun, historyItems: ScanHistoryItem[]) => void; onAutomaticRun: (run: ScanRun, historyItems: ScanHistoryItem[]) => void; onSettingsChanged: (settings: AutomaticScanSettings) => void; initialModule?: ModuleId };
+type Props = { onProfile: () => void; onHistory: () => void; history: ScanHistoryItem[]; onManualRun: (run: ScanRun, historyItems: ScanHistoryItem[]) => void; onAutomaticRun: (run: ScanRun, historyItems: ScanHistoryItem[]) => void; onSettingsChanged: (settings: AutomaticScanSettings) => void; initialTab?: ScanTab };
 const allModules: ModuleId[] = ['phishing', 'file', 'apps', 'wifi', 'network', 'bluetooth'];
 const automaticModules: ModuleId[] = ['phishing', 'wifi', 'network'];
 
-export function ScanScreen({ onProfile, onHistory, history, onManualRun, onAutomaticRun, onSettingsChanged, initialModule = 'phishing' }: Props) {
+export function ScanScreen({ onProfile, onHistory, history, onManualRun, onAutomaticRun, onSettingsChanged, initialTab = 'manual' }: Props) {
   const { theme } = useTheme(); const c = theme.colors;
-  const [tab, setTab] = useState<ScanTab>('manual');
+  const [tab, setTab] = useState<ScanTab>(initialTab);
   // The Scan tab is deliberately device-wide by default. Link/file inputs enrich the
   // relevant module, but they no longer hide the rest of the security surface.
   const [selected, setSelected] = useState<ModuleId[]>(allModules);

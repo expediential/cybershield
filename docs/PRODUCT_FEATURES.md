@@ -1,6 +1,6 @@
 # CyberShield Product Capability Inventory
 
-This document is the source of truth for the product surface in the 0.6.0 build. A screen being visible does not imply broader device access than described below.
+This document is the source of truth for the product surface in the 0.6.1 build. A screen being visible does not imply broader device access than described below.
 
 | Module | Current implementation | Truthful user-facing state | Data boundary |
 | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ This document is the source of truth for the product surface in the 0.6.0 build.
 
 ## Demonstration mode
 
-Demo Mode exists for teaching the intended product capabilities before native integrations are shipped. It is off by default, has a persistent visible `DEMO MODE` label, and only supplies in-memory sample records to the module currently showing them. It does not modify scan history, alerts, posture, or analytics.
+Demo Mode is optional training content. It is off by default, has a persistent visible `DEMO MODE` label, and only supplies in-memory example alerts. It does not modify scan history, device posture, or analytics.
 
 ## Not yet implemented
 

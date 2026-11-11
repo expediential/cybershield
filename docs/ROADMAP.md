@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered in 0.6.0
+## Delivered in 0.6.1
 
 - [x] Sentinel dark-first visual system with a deliberately designed light mode
 - [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols

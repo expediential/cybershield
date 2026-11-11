@@ -4,7 +4,7 @@ import { Animated, BackHandler, Easing, StyleSheet, View } from 'react-native';
 import { ThemeProvider, useTheme } from './src/core/ThemeProvider';
 import { isPrimaryScreen, type PrimaryScreen, type Screen } from './src/core/navigation';
 import { BottomNavigation } from './src/components/QuietSignal';
-import { type Capability, type ModuleId } from './src/domain/capabilities';
+import { type Capability } from './src/domain/capabilities';
 import { addHistoryItem } from './src/domain/productState';
 import { ActivityScreen, HistoryScreen } from './src/features/activity/ActivityScreen';
 import { AlertsScreen } from './src/features/alerts/AlertsScreen';
@@ -32,7 +32,7 @@ function CyberShieldApp() {
   const [automaticScan, setAutomaticScan] = useState<AutomaticScanSettings | null>(null);
   const [historyReady, setHistoryReady] = useState(false);
   const [bootReady, setBootReady] = useState(false);
-  const [scanRequest, setScanRequest] = useState<ModuleId>('phishing');
+  const [scanStartTab, setScanStartTab] = useState<'manual' | 'automatic'>('manual');
   const motion = useRef(new Animated.Value(1)).current;
 
   useEffect(() => { let active = true; Promise.all([loadHistory(), loadScanRuns(), loadAutomaticScanSettings(), hasCompletedOnboarding()]).then(([items, storedRuns, storedAutomatic, onboardingComplete]) => { if (!active) return; setHistory(items); setScanRuns(storedRuns); setAutomaticScan(storedAutomatic); setScreen(onboardingComplete ? 'home' : 'onboarding'); setHistoryReady(true); }).finally(() => { if (active) setBootReady(true); }); return () => { active = false; }; }, []);
@@ -40,9 +40,9 @@ function CyberShieldApp() {
   useEffect(() => { motion.setValue(reducedMotion ? 1 : 0); const transition = Animated.timing(motion, { toValue: 1, duration: reducedMotion ? 0 : 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }); transition.start(); return () => transition.stop(); }, [motion, reducedMotion, screen]);
 
   const navigate = useCallback((next: Screen) => setScreen(next), []);
-  const openScan = (module: ModuleId = 'phishing') => { setScanRequest(module); navigate('scan'); };
+  const openScan = (tab: 'manual' | 'automatic' = 'manual') => { setScanStartTab(tab); navigate('scan'); };
   const openModule = (capability: Capability) => {
-    if (capability.id === 'phishing' || capability.id === 'file') return openScan(capability.id);
+    if (capability.id === 'phishing' || capability.id === 'file') return openScan();
     navigate(capability.id);
   };
   const saveManualRun = (run: ScanRun, items: ScanHistoryItem[]) => {
@@ -74,9 +74,9 @@ function CyberShieldApp() {
   if (!themeReady || !bootReady) return <View style={[styles.app, { backgroundColor: theme.colors.monitoringSurface }]}><StatusBar style="light" /><SplashScreen /></View>;
 
   return <View style={[styles.app, { backgroundColor: theme.colors.canvas }]}><StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} /><Animated.View style={[styles.stage, { opacity: motion, transform: [{ translateY }] }]}>
-    {screen === 'home' && <HomeScreen history={history} scanRuns={scanRuns} automaticScan={automaticScan} onScan={() => openScan('phishing')} onFileScan={() => openScan('file')} onProtection={() => navigate('protection')} onActivity={() => navigate('activity')} onProfile={openSettings} onAlerts={() => navigate('alerts')} onCapability={openModule} />}
+    {screen === 'home' && <HomeScreen history={history} scanRuns={scanRuns} automaticScan={automaticScan} onScan={() => openScan()} onAutomaticScan={() => openScan('automatic')} onFileScan={() => openScan()} onProtection={() => navigate('protection')} onActivity={() => navigate('activity')} onProfile={openSettings} onAlerts={() => navigate('alerts')} onCapability={openModule} />}
     {screen === 'protection' && <ProtectionScreen onProfile={openSettings} onModule={openModule} />}
-    {screen === 'scan' && <ScanScreen key={scanRequest} initialModule={scanRequest} onProfile={openSettings} onHistory={() => navigate('history')} history={history} onManualRun={saveManualRun} onAutomaticRun={saveAutomaticRun} onSettingsChanged={setAutomaticScan} />}
+    {screen === 'scan' && <ScanScreen key={scanStartTab} initialTab={scanStartTab} onProfile={openSettings} onHistory={() => navigate('history')} history={history} onManualRun={saveManualRun} onAutomaticRun={saveAutomaticRun} onSettingsChanged={setAutomaticScan} />}
     {screen === 'activity' && <ActivityScreen history={history} scanRuns={scanRuns} onProfile={openSettings} onHistory={() => navigate('history')} onAnalytics={() => navigate('analytics')} />}
     {screen === 'profile' && <ProfileScreen onLearning={() => navigate('learning')} onAlerts={() => navigate('alerts')} onOnboarding={() => navigate('onboarding')} onPrivacy={() => navigate('privacy')} />}
     {screen === 'apps' && <AppSecurityScreen onBack={back} onOpenSettings={openSettings} />}
