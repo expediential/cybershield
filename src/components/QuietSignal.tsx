@@ -23,13 +23,21 @@ export function AmbientBackdrop() {
   }, [drift, reducedMotion]);
   const left = drift.interpolate({ inputRange: [0, 1], outputRange: [-24, 24] });
   const right = drift.interpolate({ inputRange: [0, 1], outputRange: [18, -22] });
-  return <View pointerEvents="none" style={styles.ambient}><Animated.View style={[styles.ambientAura, styles.ambientTeal, { backgroundColor: c.signal, transform: [{ translateX: left }] }]} /><Animated.View style={[styles.ambientAura, styles.ambientLime, { backgroundColor: c.forest, transform: [{ translateX: right }] }]} /><View style={[styles.ambientLine, { borderColor: c.monitoringLine }]} /></View>;
+  return <View pointerEvents="none" style={styles.ambient}>
+    <Animated.View style={[styles.ambientAura, styles.ambientTeal, { backgroundColor: c.signal, transform: [{ translateX: left }] }]} />
+    <Animated.View style={[styles.ambientAura, styles.ambientLime, { backgroundColor: c.forest, transform: [{ translateX: right }] }]} />
+    <View style={[styles.ambientLine, { borderColor: c.monitoringLine }]} />
+    <Animated.View style={[styles.ambientOrbit, { borderColor: c.signal, transform: [{ translateX: right }, { rotate: '18deg' }] }]} />
+    <View style={[styles.ambientMeshLine, styles.ambientMeshLineA, { backgroundColor: c.monitoringLine }]} />
+    <View style={[styles.ambientMeshLine, styles.ambientMeshLineB, { backgroundColor: c.monitoringLine }]} />
+    {[styles.ambientNodeA, styles.ambientNodeB, styles.ambientNodeC].map((position, index) => <Animated.View key={index} style={[styles.ambientNode, position, { backgroundColor: index === 1 ? c.forest : c.signal, opacity: drift.interpolate({ inputRange: [0, 1], outputRange: [0.42, 0.94] }) }]} />)}
+  </View>;
 }
 
 export function BrandHeader({ label, onProfile }: { label?: string; onProfile?: () => void }) {
   const { theme, demoMode } = useTheme();
   const c = theme.colors;
-  return <View style={styles.brandHeader}><View style={styles.brandIdentity}><SignalMark size={38} /><View><Text style={[styles.wordmark, { color: c.ink }]}>Cyber<Text style={{ color: c.forest }}>Shield</Text></Text><View style={styles.subline}>{label ? <Text style={[styles.brandLabel, { color: c.inkMuted }]}>{label}</Text> : null}{demoMode ? <DemoBadge /> : null}</View></View></View>{onProfile ? <Pressable accessibilityRole="button" accessibilityLabel="Open profile and settings" onPress={onProfile} style={[styles.profileButton, { borderColor: c.line, backgroundColor: c.surfaceStrong }]}><View style={[styles.profileHead, { borderColor: c.signal }]} /><View style={[styles.profileBody, { backgroundColor: c.signal }]} /><View style={[styles.notificationDot, { backgroundColor: c.forest }]} /></Pressable> : <View style={styles.headerSpacer} />}</View>;
+  return <View style={styles.brandHeader}><View style={styles.brandIdentity}><SignalMark size={38} /><View><Text style={[styles.wordmark, { color: c.ink }]}>Cyber<Text style={{ color: c.forest }}>Shield</Text></Text><View style={styles.subline}>{label ? <Text style={[styles.brandLabel, { color: c.inkMuted }]}>{label}</Text> : null}{demoMode ? <DemoBadge /> : null}</View></View></View>{onProfile ? <Pressable accessibilityRole="button" accessibilityLabel="Open settings and alerts" onPress={onProfile} style={[styles.profileButton, { borderColor: c.line, backgroundColor: c.surfaceStrong }]}><View style={[styles.bellDome, { borderColor: c.ink }]} /><View style={[styles.bellClapper, { backgroundColor: c.ink }]} /><View style={[styles.notificationDot, { backgroundColor: c.forest }]} /></Pressable> : <View style={styles.headerSpacer} />}</View>;
 }
 
 export function DemoBadge() {
@@ -149,11 +157,14 @@ export function BottomNavigation({ active, onNavigate }: { active: PrimaryScreen
 }
 
 const styles = StyleSheet.create({
-  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 460, overflow: 'hidden' },
+  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 500, overflow: 'hidden' },
   ambientAura: { position: 'absolute', width: 330, height: 220, borderRadius: 180, opacity: 0.13 },
   ambientTeal: { top: -104, left: -84, transform: [{ rotate: '-16deg' }] },
   ambientLime: { top: 178, right: -162, opacity: 0.055, transform: [{ rotate: '24deg' }] },
   ambientLine: { position: 'absolute', width: 500, height: 235, borderWidth: 1, borderRadius: 250, top: -124, right: -175, opacity: 0.34, transform: [{ rotate: '18deg' }] },
+  ambientOrbit: { position: 'absolute', width: 420, height: 178, borderWidth: 1, borderRadius: 210, top: 8, left: -110, opacity: 0.18 },
+  ambientMeshLine: { position: 'absolute', height: StyleSheet.hairlineWidth, width: 160, opacity: 0.48 }, ambientMeshLineA: { left: -21, top: 166, transform: [{ rotate: '-31deg' }] }, ambientMeshLineB: { left: 69, top: 123, transform: [{ rotate: '19deg' }] },
+  ambientNode: { position: 'absolute', width: 5, height: 5, borderRadius: 3 }, ambientNodeA: { left: 23, top: 224 }, ambientNodeB: { left: 104, top: 170 }, ambientNodeC: { left: 216, top: 208 },
   brandHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 42 },
   brandIdentity: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   wordmark: { fontFamily: type.display, fontSize: 20, letterSpacing: -0.55, fontWeight: '800' },
@@ -161,8 +172,7 @@ const styles = StyleSheet.create({
   brandLabel: { fontFamily: type.body, fontSize: 10 },
   headerSpacer: { width: 36 },
   profileButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  profileHead: { width: 9, height: 9, borderRadius: 5, borderWidth: 1.4 },
-  profileBody: { width: 15, height: 7, borderTopLeftRadius: 8, borderTopRightRadius: 8, marginTop: 3 },
+  bellDome: { width: 15, height: 16, borderWidth: 1.4, borderTopLeftRadius: 9, borderTopRightRadius: 9, borderBottomWidth: 0, marginTop: 3 }, bellClapper: { width: 5, height: 3, borderRadius: 3, marginTop: 1 },
   notificationDot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, right: 4, top: 4 },
   demoBadge: { borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 5, paddingVertical: 1 },
   demoText: { fontFamily: type.mono, fontSize: 7, letterSpacing: 0.6, fontWeight: '800' },

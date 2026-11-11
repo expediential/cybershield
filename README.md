@@ -2,7 +2,7 @@
 
 CyberShield is an Android cybersecurity companion with a complete product map: Phishing Protection, File Security, Application Security, Wi-Fi Security, Network Monitor, Bluetooth Security, Threat Alerts, Activity, Analytics, and privacy controls.
 
-Version 0.7.0 rebuilds the primary experience around a dark, animated protection dashboard and a full-device scan surface with live per-module progress. It retains the permission-scoped Android checks and honest local-only boundaries introduced in the prior release.
+Version 0.7.1 makes the visual system match the CyberShield reference more faithfully: the dark welcome scene, glowing dashboard, animated network backdrop, and active scan ring are now the primary experience. It retains the permission-scoped Android checks and honest local-only boundaries introduced in the prior release.
 
 ## What works today
 

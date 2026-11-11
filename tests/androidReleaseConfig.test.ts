@@ -13,7 +13,7 @@ assert.match(rules, /extends androidx\.room\.RoomDatabase \{ <init>\(\); \}/, 'R
 assert.match(rules, /extends androidx\.work\.InputMerger \{ <init>\(\); \}/, 'WorkManager input-merger constructors must survive R8');
 assert.ok(appConfig.expo.android.permissions.includes('android.permission.BLUETOOTH_CONNECT'), 'Bluetooth permission must be declared for the paired-device audit');
 assert.ok(appConfig.expo.android.permissions.includes('android.permission.ACCESS_WIFI_STATE'), 'Wi-Fi state permission must be declared for the local diagnostics');
-assert.equal(appConfig.expo.version, '0.7.0');
-assert.equal(appConfig.expo.android.versionCode, 8, 'Android versionCode must advance so the APK can update a 0.6.1 installation');
+assert.equal(appConfig.expo.version, '0.7.1');
+assert.equal(appConfig.expo.android.versionCode, 9, 'Android versionCode must advance so the APK can update a 0.7.0 installation');
 
 console.log('androidReleaseConfig: 7 assertions passed');

@@ -1,6 +1,6 @@
 # CyberShield Product Capability Inventory
 
-This document is the source of truth for the product surface in the 0.7.0 build. A screen being visible does not imply broader device access than described below.
+This document is the source of truth for the product surface in the 0.7.1 build. A screen being visible does not imply broader device access than described below.
 
 | Module | Current implementation | Truthful user-facing state | Data boundary |
 | --- | --- | --- | --- |
