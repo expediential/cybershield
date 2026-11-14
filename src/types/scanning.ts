@@ -43,6 +43,8 @@ export type ScanProgress = {
   currentModule?: ModuleId;
   currentLabel: string;
   findings: number;
+  /** Outcomes received so far, allowing the live scan list to reflect real module completion. */
+  moduleStates?: Partial<Record<ModuleId, ModuleScanStatus>>;
 };
 
 export type AutomaticScanSettings = {

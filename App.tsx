@@ -32,11 +32,17 @@ function CyberShieldApp() {
   const [automaticScan, setAutomaticScan] = useState<AutomaticScanSettings | null>(null);
   const [historyReady, setHistoryReady] = useState(false);
   const [bootReady, setBootReady] = useState(false);
+  const [launchSequenceDone, setLaunchSequenceDone] = useState(false);
   const [scanStartTab, setScanStartTab] = useState<'manual' | 'automatic'>('manual');
   const motion = useRef(new Animated.Value(1)).current;
 
   useEffect(() => { let active = true; Promise.all([loadHistory(), loadScanRuns(), loadAutomaticScanSettings(), hasCompletedOnboarding()]).then(([items, storedRuns, storedAutomatic, onboardingComplete]) => { if (!active) return; setHistory(items); setScanRuns(storedRuns); setAutomaticScan(storedAutomatic); setScreen(onboardingComplete ? 'home' : 'onboarding'); setHistoryReady(true); }).finally(() => { if (active) setBootReady(true); }); return () => { active = false; }; }, []);
   useEffect(() => { if (historyReady) saveHistory(history).catch(() => undefined); }, [history, historyReady]);
+  useEffect(() => {
+    if (!themeReady || !bootReady) return;
+    const handle = setTimeout(() => setLaunchSequenceDone(true), reducedMotion ? 0 : 1250);
+    return () => clearTimeout(handle);
+  }, [bootReady, reducedMotion, themeReady]);
   useEffect(() => { motion.setValue(reducedMotion ? 1 : 0); const transition = Animated.timing(motion, { toValue: 1, duration: reducedMotion ? 0 : 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }); transition.start(); return () => transition.stop(); }, [motion, reducedMotion, screen]);
 
   const navigate = useCallback((next: Screen) => setScreen(next), []);
@@ -71,7 +77,7 @@ function CyberShieldApp() {
   const openSettings = () => navigate('profile');
   const finishOnboarding = () => { completeOnboarding().catch(() => undefined); navigate('home'); };
 
-  if (!themeReady || !bootReady) return <View style={[styles.app, { backgroundColor: theme.colors.monitoringSurface }]}><StatusBar style="light" /><SplashScreen /></View>;
+  if (!themeReady || !bootReady || !launchSequenceDone) return <View style={[styles.app, { backgroundColor: theme.colors.monitoringSurface }]}><StatusBar style="light" /><SplashScreen /></View>;
 
   return <View style={[styles.app, { backgroundColor: theme.colors.canvas }]}><StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} /><Animated.View style={[styles.stage, { opacity: motion, transform: [{ translateY }] }]}>
     {screen === 'home' && <HomeScreen history={history} scanRuns={scanRuns} automaticScan={automaticScan} onScan={() => openScan()} onAutomaticScan={() => openScan('automatic')} onFileScan={() => openScan()} onProtection={() => navigate('protection')} onActivity={() => navigate('activity')} onProfile={openSettings} onAlerts={() => navigate('alerts')} onCapability={openModule} />}

@@ -3,27 +3,54 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SignalMark } from '../../brand/SignalMark';
 import { AmbientBackdrop } from '../../components/QuietSignal';
 import { useTheme } from '../../core/ThemeProvider';
-import { motion, type } from '../../design/tokens';
+import { type } from '../../design/tokens';
 
-/** Shown only while persisted app state is being read; it never delays navigation. */
+/** A brief, deliberate launch handoff before the persisted workspace is shown. */
 export function SplashScreen() {
   const { theme, reducedMotion } = useTheme();
   const c = theme.colors;
-  const reveal = useRef(new Animated.Value(0)).current;
+  const mark = useRef(new Animated.Value(0)).current;
+  const greeting = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0.55)).current;
 
   useEffect(() => {
-    const animation = Animated.timing(reveal, { toValue: 1, duration: reducedMotion ? 0 : motion.deliberate, easing: Easing.out(Easing.cubic), useNativeDriver: true });
-    animation.start();
-    return () => animation.stop();
-  }, [reducedMotion, reveal]);
+    if (reducedMotion) { mark.setValue(1); greeting.setValue(1); pulse.setValue(0.7); return; }
+    const enter = Animated.sequence([
+      Animated.timing(mark, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(greeting, { toValue: 1, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]);
+    const breathe = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 850, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0.48, duration: 850, useNativeDriver: true }),
+    ]));
+    enter.start(); breathe.start();
+    return () => { enter.stop(); breathe.stop(); };
+  }, [greeting, mark, pulse, reducedMotion]);
 
-  const scale = reveal.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] });
-  return <View style={[styles.root, { backgroundColor: c.monitoringSurface }]}><AmbientBackdrop /><Animated.View style={[styles.content, { opacity: reveal, transform: [{ scale }] }]}><SignalMark size={68} inverse /><Text style={[styles.wordmark, { color: c.white }]}>Cyber<Text style={{ color: c.forest }}>Shield</Text></Text><Text style={[styles.subtitle, { color: c.monitoringMuted }]}>LOCAL SECURITY COMPANION</Text></Animated.View></View>;
+  const markScale = mark.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] });
+  const greetingY = greeting.interpolate({ inputRange: [0, 1], outputRange: [15, 0] });
+  return <View style={[styles.root, { backgroundColor: c.monitoringSurface }]}>
+    <AmbientBackdrop />
+    <Animated.View pointerEvents="none" style={[styles.halo, { backgroundColor: c.signal, opacity: pulse, transform: [{ scale: markScale }] }]} />
+    <Animated.View style={[styles.markGroup, { opacity: mark, transform: [{ scale: markScale }] }]}>
+      <SignalMark size={70} inverse />
+      <Text style={[styles.brand, { color: c.white }]}>Cyber<Text style={{ color: c.forest }}>Shield</Text></Text>
+    </Animated.View>
+    <Animated.View style={[styles.greetingGroup, { opacity: greeting, transform: [{ translateY: greetingY }] }]}>
+      <Text style={[styles.greetingKicker, { color: c.monitoringMuted }]}>GOOD TO SEE YOU</Text>
+      <Text style={[styles.greeting, { color: c.white }]}>Hello, James</Text>
+      <Text style={[styles.detail, { color: c.signal }]}>Protection Centre is ready</Text>
+    </Animated.View>
+  </View>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  content: { alignItems: 'center' },
-  wordmark: { fontFamily: type.display, fontSize: 30, fontWeight: '800', letterSpacing: -0.8, marginTop: 18 },
-  subtitle: { fontFamily: type.mono, fontSize: 9, letterSpacing: 1.15, marginTop: 8 },
+  halo: { position: 'absolute', width: 205, height: 205, borderRadius: 104, opacity: 0.1 },
+  markGroup: { alignItems: 'center', marginTop: -46 },
+  brand: { fontFamily: type.display, fontSize: 28, fontWeight: '800', letterSpacing: -0.75, marginTop: 16 },
+  greetingGroup: { position: 'absolute', bottom: 116, alignItems: 'center' },
+  greetingKicker: { fontFamily: type.mono, fontSize: 9, letterSpacing: 1.1, fontWeight: '800' },
+  greeting: { fontFamily: type.display, fontSize: 29, letterSpacing: -0.7, fontWeight: '800', marginTop: 8 },
+  detail: { fontFamily: type.body, fontSize: 12, fontWeight: '700', marginTop: 5 },
 });

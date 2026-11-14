@@ -48,7 +48,7 @@ export function HomeScreen({ history, scanRuns, automaticScan, onScan, onAutomat
     <View style={styles.welcomeRow}>
       <View>
         <Text style={[styles.welcomeKicker, { color: c.inkMuted }]}>Welcome back,</Text>
-        <Text style={[styles.welcomeName, { color: c.ink }]}>Security admin</Text>
+        <Text style={[styles.welcomeName, { color: c.ink }]}>James</Text>
       </View>
       <View style={[styles.devicePill, { borderColor: c.monitoringLine, backgroundColor: c.monitoringQuiet }]}>
         <StatusDot state="safe" size={6} />
@@ -111,14 +111,7 @@ export function HomeScreen({ history, scanRuns, automaticScan, onScan, onAutomat
       <Text style={[styles.sectionTitle, { color: c.ink }]}>Security Modules</Text>
       <Pressable accessibilityRole="button" onPress={onProtection}><Text style={[styles.viewAll, { color: c.forest }]}>View all →</Text></Pressable>
     </View>
-    <View style={styles.moduleGrid}>{capabilities.map((module) => <Pressable accessibilityRole="button" key={module.id} onPress={() => onCapability(module)} style={({ pressed }) => [styles.moduleCard, { backgroundColor: c.surface, borderColor: c.line, opacity: pressed ? 0.82 : 1 }]}>
-      <View style={styles.moduleTop}>
-        <View style={[styles.moduleGlyphWrap, { backgroundColor: c.monitoringQuiet }]}><ModuleGlyph id={module.id} size={24} tone="active" /></View>
-        <View style={[styles.checkMark, { backgroundColor: c.forest }]}><Text style={[styles.checkText, { color: c.onForest }]}>✓</Text></View>
-      </View>
-      <Text numberOfLines={2} style={[styles.moduleTitle, { color: c.ink }]}>{module.title.replace('Application', 'App')}</Text>
-      <Text style={[styles.moduleState, { color: c.signal }]}>Ready</Text>
-    </Pressable>)}</View>
+    <View style={styles.moduleGrid}>{capabilities.map((module, index) => <HomeModuleCard key={module.id} module={module} index={index} onPress={() => onCapability(module)} />)}</View>
 
     <View style={styles.sectionHead}>
       <Text style={[styles.sectionTitle, { color: c.ink }]}>Recent Activity</Text>
@@ -194,6 +187,24 @@ function LiveBeacon({ active }: { active: boolean }) {
   return <View style={styles.beacon}><Animated.View style={[styles.beaconHalo, { borderColor: active ? theme.colors.forest : theme.colors.signal, opacity: ping }]} /><View style={[styles.beaconDot, { backgroundColor: active ? theme.colors.forest : theme.colors.signal }]} /></View>;
 }
 
+function HomeModuleCard({ module, index, onPress }: { module: Capability; index: number; onPress: () => void }) {
+  const { theme, reducedMotion } = useTheme(); const c = theme.colors;
+  const enter = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  useEffect(() => {
+    const animation = Animated.timing(enter, { toValue: 1, duration: reducedMotion ? 0 : 310, delay: reducedMotion ? 0 : 85 + index * 52, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    animation.start(); return () => animation.stop();
+  }, [enter, index, reducedMotion]);
+  const translateY = enter.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
+  return <Animated.View style={{ width: '31.65%', opacity: enter, transform: [{ translateY }] }}><Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.moduleCard, { width: '100%', backgroundColor: c.surface, borderColor: c.line, opacity: pressed ? 0.82 : 1 }]}>
+    <View style={styles.moduleTop}>
+      <View style={[styles.moduleGlyphWrap, { backgroundColor: c.monitoringQuiet }]}><ModuleGlyph id={module.id} size={24} tone="active" /></View>
+      <View style={[styles.checkMark, { backgroundColor: c.forest }]}><Text style={[styles.checkText, { color: c.onForest }]}>✓</Text></View>
+    </View>
+    <Text numberOfLines={2} style={[styles.moduleTitle, { color: c.ink }]}>{module.title.replace('Application', 'App')}</Text>
+    <Text style={[styles.moduleState, { color: c.signal }]}>Ready</Text>
+  </Pressable></Animated.View>;
+}
+
 function Metric({ value, label, glyph, warning = false, compact = false }: { value: string; label: string; glyph: 'network' | 'phishing' | 'file'; warning?: boolean; compact?: boolean }) {
   const { theme } = useTheme();
   return <View style={styles.metric}>
@@ -242,7 +253,7 @@ const styles = StyleSheet.create({
   monitoringStrip: { minHeight: 66, marginTop: 12, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
   beacon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }, beaconHalo: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 1.4 }, beaconDot: { width: 10, height: 10, borderRadius: 5 }, monitoringCopy: { flex: 1 }, monitoringTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, monitoringSubtitle: { fontFamily: type.body, fontSize: 9, marginTop: 3 }, monitoringAction: { fontFamily: type.body, fontSize: 10, fontWeight: '800' },
   sectionHead: { marginTop: 25, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  moduleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, moduleCard: { width: '31.65%', minHeight: 111, borderWidth: 1, borderRadius: radius.md, padding: 10, justifyContent: 'space-between' }, moduleTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, moduleGlyphWrap: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, checkMark: { width: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' }, checkText: { fontFamily: type.body, fontSize: 9, fontWeight: '800' }, moduleTitle: { fontFamily: type.body, fontSize: 10, lineHeight: 13, fontWeight: '800', marginTop: 6 }, moduleState: { fontFamily: type.body, fontSize: 8, marginTop: 2 },
+  moduleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 }, moduleCard: { width: '31.65%', minHeight: 116, borderWidth: 1, borderRadius: radius.md, padding: 10, justifyContent: 'space-between', shadowColor: '#00E5FF', shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }, moduleTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, moduleGlyphWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, checkMark: { width: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center' }, checkText: { fontFamily: type.body, fontSize: 10, fontWeight: '900' }, moduleTitle: { fontFamily: type.body, fontSize: 10, lineHeight: 13, fontWeight: '800', marginTop: 6 }, moduleState: { fontFamily: type.body, fontSize: 8, marginTop: 3 },
   activityCard: { minHeight: 70, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 10 }, activityIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, activityCopy: { flex: 1 }, activityTitle: { fontFamily: type.body, fontSize: 12, fontWeight: '800' }, activitySubtitle: { fontFamily: type.body, fontSize: 9, marginTop: 3 }, activityChevron: { fontFamily: type.body, fontSize: 24, fontWeight: '300' },
   fileShortcut: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 4, paddingTop: 16 }, fileShortcutText: { fontFamily: type.body, fontSize: 10 }, fileShortcutLink: { fontFamily: type.body, fontSize: 10, fontWeight: '800' }, bottomSpace: { height: 24 },
 });

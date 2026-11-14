@@ -27,6 +27,7 @@ export type ScanModule = {
 const empty = (moduleId: ModuleId, displayName: string, status: ModuleScanStatus, summary: string, recommendations: string[] = []): ScanModuleResult => ({ moduleId, displayName, status, summary, findings: [], recommendations });
 const highest = (findings: Finding[]): Severity => findings.some((item) => item.severity === 'danger') ? 'danger' : findings.some((item) => item.severity === 'warning') ? 'warning' : findings.some((item) => item.severity === 'info') ? 'info' : 'safe';
 const uniqueUrls = (urls: string[]) => [...new Set(urls.map((url) => url.trim()).filter(Boolean))].slice(0, 10);
+const stagePause = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 const urlModule: ScanModule = {
   moduleId: 'phishing', displayName: 'Phishing Protection', requiredPermissions: [],
@@ -38,7 +39,13 @@ const urlModule: ScanModule = {
     const findings = results.flatMap((result) => result.findings.map((finding) => ({ ...finding, detail: `${result.normalized || result.input}: ${finding.detail}` })));
     const historyItems: ScanHistoryItem[] = results.map((result, index) => ({ id: `url-${Date.now()}-${index}`, kind: 'url', subject: result.normalized || result.input || 'Invalid address', verdict: result.verdict, score: result.score, createdAt: result.checkedAt, detail: result.coverage, read: !needsAttention(result.verdict), source: 'local-heuristics' }));
     const attention = results.filter((result) => needsAttention(result.verdict));
-    return { moduleId: 'phishing', displayName: 'Phishing Protection', status: 'completed', summary: attention.length ? `${attention.length} of ${results.length} link assessment${results.length === 1 ? '' : 's'} needs review.` : `${results.length} link assessment${results.length === 1 ? '' : 's'} completed with no high-risk local signal.`, findings, recommendations: results.map((result) => result.recommendation), historyItems, detail: results.map((result) => result.coverage).join(' · ') };
+    const unassessed = results.filter((result) => result.verdict === 'unknown');
+    const summary = unassessed.length === results.length
+      ? 'No valid web address could be structurally assessed.'
+      : attention.length
+        ? `${attention.length} of ${results.length} link assessment${results.length === 1 ? '' : 's'} needs review.`
+        : `${results.length} link assessment${results.length === 1 ? '' : 's'} completed with no high-risk local signal.`;
+    return { moduleId: 'phishing', displayName: 'Phishing Protection', status: 'completed', summary, findings, recommendations: results.map((result) => result.recommendation), historyItems, detail: results.map((result) => result.coverage).join(' · ') };
   },
 };
 
@@ -134,14 +141,14 @@ export async function runScan(request: ScanRequest): Promise<ScanRun> {
   const startedAt = new Date().toISOString();
   const selectedModules = [...new Set(request.selectedModules)];
   const total = selectedModules.length;
-  const emit = (state: ScanState, completed: number, currentLabel: string, currentModule?: ModuleId, findings = 0) => request.onProgress?.({ state, total, completed, currentModule, currentLabel, findings });
+  const results: ScanModuleResult[] = [];
+  const emit = (state: ScanState, completed: number, currentLabel: string, currentModule?: ModuleId, findings = 0) => request.onProgress?.({ state, total, completed, currentModule, currentLabel, findings, moduleStates: Object.fromEntries(results.map((result) => [result.moduleId, result.status])) });
   emit('preparing', 0, request.mode === 'manual' ? 'Preparing the selected modules' : 'Preparing scheduled local checks');
   if (!total) {
     const completedAt = new Date().toISOString();
     return { id: `scan-${Date.now()}`, mode: request.mode, state: 'failed', startedAt, completedAt, selectedModules, results: [], findingCount: 0, highestSeverity: 'info', summary: 'No scan modules were selected.' };
   }
   emit('checking-permissions', 0, 'Checking each module’s available access');
-  const results: ScanModuleResult[] = [];
   let findings = 0;
   for (let index = 0; index < selectedModules.length; index += 1) {
     const moduleId = selectedModules[index];
@@ -153,15 +160,21 @@ export async function runScan(request: ScanRequest): Promise<ScanRun> {
     }
     const availability = module.availability(request);
     if (!availability.available) {
+      const stageStartedAt = Date.now();
       const result = await module.execute(request);
       result.summary = availability.reason ?? result.summary;
+      if (request.mode === 'manual') await stagePause(Math.max(0, 420 - (Date.now() - stageStartedAt)));
       results.push(result);
       emit('permission-required', index + 1, result.summary, moduleId, findings);
       continue;
     }
     emit('scanning', index, `Checking ${module.displayName}`, moduleId, findings);
+    const stageStartedAt = Date.now();
     try {
       const result = await module.execute(request);
+      // This is presentation pacing only. The result comes from the real module
+      // first; we hold the completed state briefly so users can follow each row.
+      if (request.mode === 'manual') await stagePause(Math.max(0, 420 - (Date.now() - stageStartedAt)));
       results.push(result);
       findings += result.findings.filter((finding) => finding.severity === 'warning' || finding.severity === 'danger').length;
       emit(findings ? 'findings-detected' : 'scanning', index + 1, result.summary, moduleId, findings);

@@ -1,6 +1,6 @@
 # CyberShield Product Capability Inventory
 
-This document is the source of truth for the product surface in the 0.7.1 build. A screen being visible does not imply broader device access than described below.
+This document is the source of truth for the product surface in the 0.7.2 build. A screen being visible does not imply broader device access than described below.
 
 | Module | Current implementation | Truthful user-facing state | Data boundary |
 | --- | --- | --- | --- |
@@ -11,7 +11,7 @@ This document is the source of truth for the product surface in the 0.7.1 build.
 | Wi-Fi Security | Android-reported connection type/reachability, Wi-Fi state, SSID and security type only when exposed, airplane mode, and local IP when exposed | Ready for limited connection-state checks; no traffic or DNS inspection | No packet or traffic collection |
 | Network Monitor | Android-reported connection type/reachability and local IP when exposed | Ready for limited connectivity metadata; no `VpnService` or flow inspection | No traffic content is captured |
 | Bluetooth Security | Kotlin adapter reads paired-device names/types after user grants Android Nearby devices access | Ready; no discovery, addresses, or remote upload | Pairing data stays in memory for the current scan only |
-| Scan engine | Shared manual and automatic module orchestration, honest progress, skip/failure records, cancellation, and local run history | Ready | Local AsyncStorage only |
+| Scan engine | Shared manual and automatic module orchestration, live queued/scanning/completed/input-needed states, skip/failure records, cancellation, and local run history | Ready | Local AsyncStorage only |
 | Automatic Scan | Expo Background Task/WorkManager registration with battery and Wi-Fi policy controls | Optional and deferrable; exact clock time is not guaranteed | Saved URLs and connection-state metadata only |
 | Finding notifications | Android notification channel for changed automatic URL findings | Optional, permission-gated | No scan content is sent remotely |
 | Threat Alerts | Derived from actual suspicious/malicious local assessments | Ready for stored local scan alerts | Scan subject and local result only |

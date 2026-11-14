@@ -38,4 +38,13 @@ const multiPartSuffix = scanUrl('https://paypal.signin.example.co.uk/verify', fi
 assert.equal(multiPartSuffix.verdict, 'suspicious');
 assert.ok(multiPartSuffix.findings.some((finding) => finding.label === 'Look-alike brand placement'));
 
-console.log('urlScanner: 20 assertions passed');
+const deceptiveBrandSubdomain = scanUrl('https://paypal.com.login.example/verify', fixedTime);
+assert.equal(deceptiveBrandSubdomain.verdict, 'suspicious');
+assert.ok(deceptiveBrandSubdomain.score >= 24);
+assert.ok(deceptiveBrandSubdomain.findings.some((finding) => finding.label === 'Look-alike brand placement'));
+
+const trustedBrandDomain = scanUrl('https://www.paypal.com/security', fixedTime);
+assert.equal(trustedBrandDomain.verdict, 'safe');
+assert.ok(!trustedBrandDomain.findings.some((finding) => finding.label === 'Look-alike brand placement'));
+
+console.log('urlScanner: 25 assertions passed');

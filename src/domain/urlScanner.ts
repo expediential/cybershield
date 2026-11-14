@@ -70,7 +70,12 @@ export function scanUrl(input: string, now = new Date()): UrlScanResult {
   const brandLabel = labels.find((label) => brandWords.includes(label.replace(/[^a-z]/g, '')) || brandWords.some((brand) => label.includes(brand)));
   const registeredArea = parsedHost.domain ?? labels.slice(-2).join('.');
   if (brandLabel && !registeredArea.includes(brandLabel.replace(/[^a-z]/g, '')) && (labels.length > 2 || host.includes('-'))) {
-    apply(22, finding('Look-alike brand placement', `The hostname includes “${brandLabel}” outside its apparent registrable domain. Legitimate brands can use subdomains, so verify independently.`, 'warning'));
+    // A trusted name in a non-registrable label (for example
+    // paypal.com.login.example) is a materially stronger signal than a
+    // generic subdomain. Keep it below the malicious threshold because a
+    // structural check cannot establish intent, but make it independently
+    // actionable even when it is the only observed signal.
+    apply(26, finding('Look-alike brand placement', `The hostname includes “${brandLabel}” outside its apparent registrable domain. Legitimate brands can use subdomains, so verify independently.`, 'warning'));
   }
   if (lureWords.test(url.pathname + url.search) && (host.split('.').length > 3 || host.includes('-'))) {
     apply(18, finding('Credential-lure pattern', 'The path or query uses sign-in language alongside an unusually structured host.', 'warning'));

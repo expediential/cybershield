@@ -1,6 +1,6 @@
 # Roadmap
 
-## Delivered in 0.7.1
+## Delivered in 0.7.2
 
 - [x] Sentinel dark-first visual system with a deliberately designed light mode
 - [x] Sentinel Core, Threat Constellation, Scan Trace, Security Timeline, and custom module symbols
@@ -20,6 +20,9 @@
 - [x] Local public-suffix parsing for registrable-domain link checks
 - [x] Premium dark-first dashboard, animated protection status, compact module grid, and full-device scan progress surface
 - [x] Visual welcome screen with animated constellation, module orbit, and cyan wave plane
+- [x] Animated launch greeting and staggered dashboard module reveal
+- [x] Full-device scan visualizer with live module-level queued, scanning, complete, input-needed, permission, failure, and cancellation states
+- [x] Stronger local look-alike URL signal for trusted-brand text outside a registrable domain
 
 ## Next implementation milestones
 
